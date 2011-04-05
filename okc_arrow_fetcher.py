@@ -27,7 +27,7 @@ Content-Length: %d
 
 %s
 
-"""            % (self.thread_url, 
+"""            % (  self.thread_url, 
                     self.sender, 
                     self.recipient, 
                     datetime.fromtimestamp(self.timestamp), 
@@ -39,7 +39,7 @@ Content-Length: %d
 
 class ArrowFetcher:
     base_url = 'http://www.okcupid.com'
-    sleep_duration = 0  # time to wait after each HTTP request
+    sleep_duration = 0.5  # time to wait after each HTTP request
 
     def __init__(self, username, password):
         self.username = username
@@ -61,7 +61,7 @@ class ArrowFetcher:
     
     def queue_threads(self):
         self.thread_urls = []
-        for folder in range(1,4):
+        for folder in range(1,4): # Inbox, Sent, Smiles
             page = 0;
             while (True):
                 f = self._request_read_sleep(self.base_url + '/messages?folder=' + str(folder) + '&low=' + str((page * 30) + 1))
@@ -86,18 +86,11 @@ class ArrowFetcher:
             self.messages.extend(self._fetch_thread(thread_url))
 
     def write_messages(self, file_name):
-        self.messages.sort(key = lambda message: message.timestamp)
-        f = codecs.open(file_name, encoding='utf-8', mode='w')
+        self.messages.sort(key = lambda message: message.timestamp)  # sort by time
+        f = codecs.open(file_name, encoding='utf-8', mode='w')  # ugh, otherwise i think it will try to write ascii
         for message in self.messages:
             print "writing message for thread: " + message.thread_url
-            try:
-                f.write(unicode(message))
-            except UnicodeDecodeError, e:
-                print message.content
-                raise e
-            except UnicodeEncodeError, e:
-                print message.content
-                raise e
+            f.write(unicode(message))
         f.close()
     
     def _fetch_thread(self, thread_url):
@@ -112,7 +105,7 @@ class ArrowFetcher:
         try:
             other_user = soup.find('ul', {'id': 'thread'}).find('a', 'buddyname ').contents[0]
         except AttributeError:
-            other_user = soup.find('ul', {'id': 'thread'}).find('p', 'signature').contents[0].strip('Message from ')
+            other_user = soup.find('ul', {'id': 'thread'}).find('p', 'signature').contents[0].strip('Message from ')  # messages from OkCupid itself are a special case
         for message in soup.find('ul', {'id': 'thread'}).findAll('li'):
             body_contents = message.find('div', 'message_body')
             if body_contents:
