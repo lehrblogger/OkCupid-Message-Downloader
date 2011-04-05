@@ -1,111 +1,160 @@
+import codecs
 from datetime import datetime
-import urllib, urllib2
 from optparse import OptionParser
-import time
 import re
+import time
+import urllib, urllib2
+
 from BeautifulSoup import BeautifulSoup, NavigableString
+
+class Message:
+    def __init__(self, thread_url, sender, recipient, timestamp, subject, content):
+        self.thread_url = thread_url
+        self.sender = sender
+        self.recipient = recipient
+        self.timestamp = int(timestamp)
+        self.subject = subject
+        self.content = content
+    def __str__(self):
+        return """
+URL: %s
+From: %s
+To: %s
+Date: %s
+Subject: %s
+Content-Length: %d
+
+%s
+
+"""            % (self.thread_url, 
+                    self.sender, 
+                    self.recipient, 
+                    datetime.fromtimestamp(self.timestamp), 
+                    self.subject,
+                    len(self.content),
+                    self.content
+                   )
+
 
 class CupidFetcher:
     base_url = 'http://www.okcupid.com'
+    sleep_duration = 0  # time to wait after each HTTP request
 
     def __init__(self, username, password):
         self.username = username
-        self.conversation_urls = []
+        self.thread_urls = []
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor())
         urllib2.install_opener(opener)
         params = urllib.urlencode(dict(username=username, password=password))
         f = opener.open(self.base_url + '/login', params)
         f.close()
     
-    def safely_soupify(self, f):
+    def _safely_soupify(self, f):
         f = f.partition("function autocoreError")[0] + '</body></html>' # wtf okc with the weirdly encoded "</scr' + 'ipt>'"-type statements in your javascript
         return(BeautifulSoup(f))
     
-    def queue_conversations(self):
-        self.conversation_urls = []
+    def _request_read_sleep(self, url):
+        f = urllib2.urlopen(url).read()
+        time.sleep(self.sleep_duration)
+        return f
+    
+    def queue_threads(self):
+        self.thread_urls = []
         for folder in range(1,4):
-            page = 0;
-            while (True):
-                url = self.base_url + '/messages?folder=' + str(folder) + '&low=' + str((page * 30) + 1)
-                f = urllib2.urlopen(url).read()
-                soup = self.safely_soupify(f)
-                
-                conversations = [
-                    li.find('p')['onclick'].strip("\"window.location='").strip("';\"")
+            page = 1;
+            while (page < 2):
+                f = self._request_read_sleep(self.base_url + '/messages?folder=' + str(folder) + '&low=' + str((page * 30) + 1))
+                soup = self._safely_soupify(f)
+                end_pattern = re.compile('&folder=\d\';')
+                threads = [
+                    re.sub(end_pattern, '', li.find('p')['onclick'].strip("\"window.location='"))
                     for li in soup.find('ul', {'id': 'messages'}).findAll('li')
                 ]
-            
-                if len(conversations) == 0:
+                if len(threads) == 0:
                     break
                 else:
-                    self.conversation_urls.extend(conversations)
+                    self.thread_urls.extend(threads)
                     page = page + 1
-                
-    def fetch_conversations(self, file_name):
-        # self.conversation_urls = ['/messages?readmsg=true&threadid=8605121069354857629&folder=2']
-        f = open(file_name, 'w')
-        for conversation_url in self.conversation_urls:
-            messages = self.fetch_conversation(conversation_url)
-            for message in messages:
-                f.write('URL: ' + message['URL'] + '\n')
-                f.write('From: ' + message['From'].encode('utf-8') + '\n')
-                f.write('To: ' + message['To'].encode('utf-8') + '\n')
-                f.write('Date: ' + message['Date'] + '\n')
-                f.write('Subject: ' + message['Subject'].encode('utf-8') + '\n')
-                f.write('Content-Length: ' + str(len(message['Content'])) + '\n\n')
-                f.write(message['Content'].encode('utf-8') + '\n\n\n')
+    
+    def dedupe_threads(self):
+        self.thread_urls = list(set(self.thread_urls))
+    
+    def fetch_threads(self):
+        # self.thread_urls = ['/messages?readmsg=true&threadid=9806533583687024201', '/messages?readmsg=true&threadid=6421379663940737121', '/messages?readmsg=true&threadid=2740027005373537189']
+        self.messages = []
+        for thread_url in self.thread_urls:
+            self.messages.extend(self._fetch_thread(thread_url))
+
+    def write_messages(self, file_name):
+        self.messages.sort(key = lambda message: message.timestamp)
+        f = codecs.open(file_name, encoding='utf-8', mode='w')
+        for message in self.messages:
+            print "writing message for thread: " + message.thread_url
+            try:
+                f.write(unicode(message))
+            except UnicodeDecodeError, e:
+                print message.content
+                raise e
+            except UnicodeEncodeError, e:
+                print message.content
+                raise e
         f.close()
     
-    def fetch_conversation(self, conversation_url):
+    def _fetch_thread(self, thread_url):
         message_list = []
-        print self.base_url + conversation_url
-        f = urllib2.urlopen(self.base_url + conversation_url).read()
-        soup = self.safely_soupify(f)
+        print "fetching thread: " + self.base_url + thread_url
+        f = self._request_read_sleep(self.base_url + thread_url)
+        soup = self._safely_soupify(f)
         try:
-            subject = unicode(soup.find('strong', {'id': 'message_heading'}).contents[0])
+            subject = soup.find('strong', {'id': 'message_heading'}).contents[0]
         except AttributeError:
             subject = ''
         try:
-            other_user = unicode(soup.find('ul', {'id': 'thread'}).find('a', 'buddyname ').contents[0])
+            other_user = soup.find('ul', {'id': 'thread'}).find('a', 'buddyname ').contents[0]
         except AttributeError:
             other_user = soup.find('ul', {'id': 'thread'}).find('p', 'signature').contents[0].strip('Message from ')
         for message in soup.find('ul', {'id': 'thread'}).findAll('li'):
             body_contents = message.find('div', 'message_body')
             if body_contents:
-                
-                def strip_tags(html, invalid_tags):  # http://stackoverflow.com/questions/1765848/remove-a-tag-using-beautifulsoup-but-keep-its-contents/1766002#1766002
-                    soup = BeautifulSoup(html)
-                    for tag in soup.findAll(True):
-                        if tag.name in invalid_tags:
-                            s = ""
-                            for c in tag.contents:
-                                if type(c) != NavigableString:
-                                    c = strip_tags(unicode(c), invalid_tags)
-                                s += unicode(c).strip()
-                            tag.replaceWith(s)
-                    return soup
-
-                body = strip_tags(unicode(body_contents), ['a', 'span', 'strong', 'div'])
-                body = unicode(body).replace('<br />', '\n')
+                body = self._strip_tags(body_contents.renderContents()).renderContents().strip()
+                for pair in [   ('<br />', '\n'), 
+                                ('&amp;', '&'),
+                                ('&lt;', '<'),
+                                ('&gt;', '>'),
+                                ('&quot;', '"'),
+                                ('&#39;', "'")]:
+                    body = body.replace(pair[0], pair[1])
                 date_str = soup.find('script', text=re.compile("var d = new Date \(")).strip()
                 timestamp = re.match('^var d = new Date \(([\d]{10}) \* 1000\);', date_str).group(1)
-                send_date = datetime.fromtimestamp(int(timestamp))
                 sender = other_user
-                receiver = self.username
+                recipient = self.username
                 if message['class'].replace('preview', '').strip() == 'from_me':
-                    receiver = other_user
+                    recipient = other_user
                     sender = self.username
-                message_list.append({
-                    'URL': self.base_url + conversation_url,
-                    'From': sender,
-                    'To': receiver,
-                    'Date': send_date.strftime('%c -0500'),
-                    'Subject': subject,
-                    'Content': body
-                })
+                message_list.append(Message(self.base_url + thread_url, 
+                                            unicode(sender),
+                                            unicode(recipient),
+                                            timestamp,
+                                            unicode(subject),
+                                            body.decode('utf-8')))
             else:
-                break
+                break  # control elements are also <li>'s in their html, so break when there's no more messages
         return message_list
+    
+    # http://stackoverflow.com/questions/1765848/remove-a-tag-using-beautifulsoup-but-keep-its-contents/1766002#1766002
+    def _strip_tags(self, html, invalid_tags=['a', 'span', 'strong', 'div']):
+        soup = BeautifulSoup(html)
+        for tag in soup.findAll(True):
+            if tag.name in invalid_tags:
+                s = ""
+                for c in tag.contents:
+                    if type(c) != NavigableString:
+                        c = self._strip_tags(unicode(c), invalid_tags)
+                        s += unicode(c).strip()
+                    else:     
+                        s += unicode(c)
+                tag.replaceWith(s)
+        return soup
 
 def main():
     parser = OptionParser()
@@ -116,20 +165,19 @@ def main():
     parser.add_option("-f", "--filename", dest="filename",
                     help="the file to which you want to write the data")
     (options, args) = parser.parse_args()
-    cf = CupidFetcher(options.username, options.password)
-    cf.queue_conversations()
-    cf.fetch_conversations(options.filename)
+    if not options.username:
+        print "Please specify your OkCupid username with either '-u' or '--username'"
+    if not options.password:
+        print "Please specify your OkCupid password with either '-p' or '--password'"
+    if not options.filename:
+        print "Please specify the destination file with either '-f' or '--filename'"
+    if options.username and options.password and options.filename:
+        cf = CupidFetcher(options.username, options.password)
+        cf.queue_threads()
+        cf.dedupe_threads()
+        cf.fetch_threads()
+        cf.write_messages(options.filename)
 
 if __name__ == '__main__':
     main()
-
-
-
-
-
-
-
-
-
-
-
+    
