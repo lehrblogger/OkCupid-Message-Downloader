@@ -37,7 +37,7 @@ Content-Length: %d
                    )
 
 
-class CupidFetcher:
+class ArrowFetcher:
     base_url = 'http://www.okcupid.com'
     sleep_duration = 0  # time to wait after each HTTP request
 
@@ -173,11 +173,11 @@ def main():
     if not options.filename:
         print "Please specify the destination file with either '-f' or '--filename'"
     if options.username and options.password and options.filename:
-        cf = CupidFetcher(options.username, options.password)
-        cf.queue_threads()
-        cf.dedupe_threads()
-        cf.fetch_threads()
-        cf.write_messages(options.filename)
+        arrow_fetcher = ArrowFetcher(options.username, options.password)
+        arrow_fetcher.queue_threads()
+        arrow_fetcher.dedupe_threads()
+        arrow_fetcher.fetch_threads()
+        arrow_fetcher.write_messages(options.filename)
 
 if __name__ == '__main__':
     main()
