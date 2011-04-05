@@ -7,6 +7,7 @@ import urllib, urllib2
 
 from BeautifulSoup import BeautifulSoup, NavigableString
 
+
 class Message:
     def __init__(self, thread_url, sender, recipient, timestamp, subject, content):
         self.thread_url = thread_url
@@ -30,7 +31,7 @@ Content-Length: %d
                     self.sender, 
                     self.recipient, 
                     datetime.fromtimestamp(self.timestamp), 
-                    self.subject,
+                    self.subject.strip(),
                     len(self.content),
                     self.content
                    )
@@ -61,8 +62,8 @@ class CupidFetcher:
     def queue_threads(self):
         self.thread_urls = []
         for folder in range(1,4):
-            page = 1;
-            while (page < 2):
+            page = 0;
+            while (True):
                 f = self._request_read_sleep(self.base_url + '/messages?folder=' + str(folder) + '&low=' + str((page * 30) + 1))
                 soup = self._safely_soupify(f)
                 end_pattern = re.compile('&folder=\d\';')
@@ -70,7 +71,7 @@ class CupidFetcher:
                     re.sub(end_pattern, '', li.find('p')['onclick'].strip("\"window.location='"))
                     for li in soup.find('ul', {'id': 'messages'}).findAll('li')
                 ]
-                if len(threads) == 0:
+                if len(threads) == 0:  # break out of the infinite loop when we reach the end and there are no threads on the page
                     break
                 else:
                     self.thread_urls.extend(threads)
@@ -80,7 +81,6 @@ class CupidFetcher:
         self.thread_urls = list(set(self.thread_urls))
     
     def fetch_threads(self):
-        # self.thread_urls = ['/messages?readmsg=true&threadid=9806533583687024201', '/messages?readmsg=true&threadid=6421379663940737121', '/messages?readmsg=true&threadid=2740027005373537189']
         self.messages = []
         for thread_url in self.thread_urls:
             self.messages.extend(self._fetch_thread(thread_url))
@@ -155,6 +155,7 @@ class CupidFetcher:
                         s += unicode(c)
                 tag.replaceWith(s)
         return soup
+
 
 def main():
     parser = OptionParser()
