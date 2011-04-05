@@ -131,7 +131,7 @@ class ArrowFetcher:
                                             unicode(subject),
                                             body.decode('utf-8')))
             else:
-                break  # control elements are also <li>'s in their html, so break when there's no more messages
+                continue  # control elements are also <li>'s in their html, so non-messages
         return message_list
     
     # http://stackoverflow.com/questions/1765848/remove-a-tag-using-beautifulsoup-but-keep-its-contents/1766002#1766002

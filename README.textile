@@ -5,4 +5,3 @@ The time has come to deactivate my OkCupid account, but I was slightly unhappy a
 To use it, run it from the command line like this: 
 
     @python okc_arrow_fetcher.py -u your_username -p your_password -f 'the_full_path_to_some_empty_file'@
-    
