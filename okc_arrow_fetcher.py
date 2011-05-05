@@ -39,7 +39,7 @@ Content-Length: %d
 
 class ArrowFetcher:
     base_url = 'http://www.okcupid.com'
-    sleep_duration = 0.5  # time to wait after each HTTP request
+    sleep_duration = 3.0  # time to wait after each HTTP request
 
     def __init__(self, username, password):
         self.username = username
