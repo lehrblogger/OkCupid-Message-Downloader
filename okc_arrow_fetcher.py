@@ -13,7 +13,7 @@ class Message:
         self.thread_url = thread_url
         self.sender = sender
         self.recipient = recipient
-        self.timestamp = int(timestamp)
+        self.timestamp = timestamp
         self.subject = subject
         self.content = content
     def __str__(self):
@@ -30,7 +30,7 @@ Content-Length: %d
 """            % (  self.thread_url, 
                     self.sender, 
                     self.recipient, 
-                    datetime.fromtimestamp(self.timestamp), 
+                    self.timestamp, 
                     self.subject.strip(),
                     len(self.content),
                     self.content
@@ -85,6 +85,10 @@ class ArrowFetcher:
         for thread_url in self.thread_urls:
             self.messages.extend(self._fetch_thread(thread_url))
 
+    def strptime(self,string,format='%b %d, %Y &ndash; %I:%M%p'):
+        return datetime.strptime(string.strip(),format)
+        
+            
     def write_messages(self, file_name):
         self.messages.sort(key = lambda message: message.timestamp)  # sort by time
         f = codecs.open(file_name, encoding='utf-8', mode='w')  # ugh, otherwise i think it will try to write ascii
@@ -117,8 +121,7 @@ class ArrowFetcher:
                                 ('&quot;', '"'),
                                 ('&#39;', "'")]:
                     body = body.replace(pair[0], pair[1])
-                date_str = soup.find('script', text=re.compile("var d = new Date \(")).strip()
-                timestamp = re.match('^var d = new Date \(([\d]{10}) \* 1000\);', date_str).group(1)
+                timestamp = self.strptime(message.find('span','timestamp').text.strip())
                 sender = other_user
                 recipient = self.username
                 if message['class'].replace('preview', '').strip() == 'from_me':
