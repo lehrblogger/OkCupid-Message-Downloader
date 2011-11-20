@@ -85,10 +85,9 @@ class ArrowFetcher:
         for thread_url in self.thread_urls:
             self.messages.extend(self._fetch_thread(thread_url))
 
-    def strptime(self,string,format='%b %d, %Y &ndash; %I:%M%p'):
-        return datetime.strptime(string.strip(),format)
-        
-            
+    def strptime(self, string, format='%b %d, %Y &ndash; %I:%M%p'):
+        return datetime.strptime(string.strip(), format)
+                
     def write_messages(self, file_name):
         self.messages.sort(key = lambda message: message.timestamp)  # sort by time
         f = codecs.open(file_name, encoding='utf-8', mode='w')  # ugh, otherwise i think it will try to write ascii
