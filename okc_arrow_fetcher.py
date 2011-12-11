@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# encoding: utf-8
+
 import codecs
 from datetime import datetime
 from optparse import OptionParser
@@ -118,9 +121,10 @@ class ArrowFetcher:
                                 ('&lt;', '<'),
                                 ('&gt;', '>'),
                                 ('&quot;', '"'),
-                                ('&#39;', "'")]:
+                                ('&#39;', "'"),
+                                ('&mdash;', "—")]:
                     body = body.replace(pair[0], pair[1])
-                timestamp = self.strptime(message.find('span','timestamp').text.strip())
+                timestamp = self.strptime(message.find('span','timestamp').decodeContents().strip())
                 sender = other_user
                 recipient = self.username
                 if message['class'].replace('preview', '').strip() == 'from_me':
