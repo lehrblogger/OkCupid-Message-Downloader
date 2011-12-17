@@ -125,7 +125,7 @@ class ArrowFetcher:
                                 ('&mdash;', "—")]:
                     body = body.replace(pair[0], pair[1])
                 timestamp = message.find('span','timestamp')
-                if timestamp.decodeContents():
+                if timestamp.decodeContents and timestamp.decodeContents():
                     timestamp = self.strptime(timestamp.decodeContents().strip())
                 else: 
                     timestamp = self.strptime(timestamp.text.strip())
