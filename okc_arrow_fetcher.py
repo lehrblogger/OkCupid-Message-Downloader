@@ -124,7 +124,11 @@ class ArrowFetcher:
                                 ('&#39;', "'"),
                                 ('&mdash;', "—")]:
                     body = body.replace(pair[0], pair[1])
-                timestamp = self.strptime(message.find('span','timestamp').decodeContents().strip())
+                timestamp = message.find('span','timestamp')
+                if timestamp.decodeContents():
+                    timestamp = self.strptime(timestamp.decodeContents().strip())
+                else: 
+                    timestamp = self.strptime(timestamp.text.strip())
                 sender = other_user
                 recipient = self.username
                 if message['class'].replace('preview', '').strip() == 'from_me':
