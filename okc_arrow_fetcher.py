@@ -67,6 +67,7 @@ class ArrowFetcher:
         for folder in range(1,4): # Inbox, Sent, Smiles
             page = 0;
             while (True):
+                print "queuing folder %s, page %s" % (folder, page)
                 f = self._request_read_sleep(self.base_url + '/messages?folder=' + str(folder) + '&low=' + str((page * 30) + 1))
                 soup = self._safely_soupify(f)
                 end_pattern = re.compile('&folder=\d\';')
@@ -81,6 +82,7 @@ class ArrowFetcher:
                     page = page + 1
     
     def dedupe_threads(self):
+        print "removing duplicate URLs"
         self.thread_urls = list(set(self.thread_urls))
     
     def fetch_threads(self):
@@ -111,7 +113,11 @@ class ArrowFetcher:
         try:
             other_user = soup.find('a', {'class': 'buddyname'}).contents[0]
         except AttributeError:
-            other_user = soup.find('ul', {'id': 'thread'}).find('p', 'signature').contents[0].strip('Message from ')  # messages from OkCupid itself are a special case
+            try:
+                # messages from OkCupid itself are a special case
+                other_user = soup.find('ul', {'id': 'thread'}).find('p', 'signature').contents[0].strip('Message from ')
+            except AttributeError:
+                other_user = ''
         for message in soup.find('ul', {'id': 'thread'}).findAll('li'):
             body_contents = message.find('div', 'message_body')
             if body_contents:
