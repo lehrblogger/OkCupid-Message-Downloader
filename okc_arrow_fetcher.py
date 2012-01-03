@@ -72,7 +72,7 @@ class ArrowFetcher:
                 soup = self._safely_soupify(f)
                 end_pattern = re.compile('&folder=\d\';')
                 threads = [
-                    re.sub(end_pattern, '', li.find('p')['onclick'].strip("\"window.location='"))
+                    re.sub(end_pattern, '', li.find('p')['onclick'].partition("window.location='")[2])
                     for li in soup.find('ul', {'id': 'messages'}).findAll('li')
                 ]
                 if len(threads) == 0:  # break out of the infinite loop when we reach the end and there are no threads on the page
@@ -115,7 +115,7 @@ class ArrowFetcher:
         except AttributeError:
             try:
                 # messages from OkCupid itself are a special case
-                other_user = soup.find('ul', {'id': 'thread'}).find('p', 'signature').contents[0].strip('Message from ')
+                other_user = soup.find('ul', {'id': 'thread'}).find('p', 'signature').contents[0].partition('Message from ')[2]
             except AttributeError:
                 other_user = ''
         for message in soup.find('ul', {'id': 'thread'}).findAll('li'):
