@@ -43,7 +43,7 @@ Content-Length: %d
 class ArrowFetcher:
     base_url = 'http://www.okcupid.com'
     sleep_duration = 3.0  # time to wait after each HTTP request
-
+    
     def __init__(self, username, password):
         self.username = username
         self.thread_urls = []
@@ -93,10 +93,10 @@ class ArrowFetcher:
         self.messages = []
         for thread_url in self.thread_urls:
             self.messages.extend(self._fetch_thread(thread_url))
-
+    
     def strptime(self, string, format='%b %d, %Y &ndash; %I:%M%p'):
         return datetime.strptime(string.strip(), format)
-                
+    
     def write_messages(self, file_name):
         self.messages.sort(key = lambda message: message.timestamp)  # sort by time
         f = codecs.open(file_name, encoding='utf-8', mode='w')  # ugh, otherwise i think it will try to write ascii
