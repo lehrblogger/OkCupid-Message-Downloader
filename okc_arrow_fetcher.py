@@ -130,10 +130,10 @@ class ArrowFetcher:
                                 ('&#39;', "'"),
                                 ('&mdash;', "—")]:
                     body = body.replace(pair[0], pair[1])
-                timestamp = message.find('span','timestamp')
+                timestamp = message.find('span','timestamp').find('span', 'fancydate')
                 if timestamp.decodeContents and timestamp.decodeContents():
                     timestamp = self.strptime(timestamp.decodeContents().strip())
-                else: 
+                else:
                     timestamp = self.strptime(timestamp.text.strip())
                 sender = other_user
                 recipient = self.username
