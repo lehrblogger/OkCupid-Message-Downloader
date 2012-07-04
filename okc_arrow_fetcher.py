@@ -64,26 +64,30 @@ class ArrowFetcher:
     
     def queue_threads(self):
         self.thread_urls = []
-        for folder in range(1,4): # Inbox, Sent, Smiles
-            page = 0;
-            while (True):
-                print "queuing folder %s, page %s" % (folder, page)
-                f = self._request_read_sleep(self.base_url + '/messages?folder=' + str(folder) + '&low=' + str((page * 30) + 1))
-                soup = self._safely_soupify(f)
-                end_pattern = re.compile('&folder=\d\';')
-                threads = [
-                    re.sub(end_pattern, '', li.find('p')['onclick'].partition("window.location='")[2])
-                    for li in soup.find('ul', {'id': 'messages'}).findAll('li')
-                ]
-                if len(threads) == 0:  # break out of the infinite loop when we reach the end and there are no threads on the page
-                    break
-                else:
-                    self.thread_urls.extend(threads)
-                    page = page + 1
+        try:
+            for folder in range(1,4): # Inbox, Sent, Smiles
+                page = 0;
+                while (True):
+                    print "queuing folder %s, page %s" % (folder, page)
+                    f = self._request_read_sleep(self.base_url + '/messages?folder=' + str(folder) + '&low=' + str((page * 30) + 1))
+                    soup = self._safely_soupify(f)
+                    end_pattern = re.compile('&folder=\d\';')
+                    threads = [
+                        re.sub(end_pattern, '', li.find('p')['onclick'].partition("window.location='")[2])
+                        for li in soup.find('ul', {'id': 'messages'}).findAll('li')
+                    ]
+                    if len(threads) == 0:  # break out of the infinite loop when we reach the end and there are no threads on the page
+                        break
+                    else:
+                        self.thread_urls.extend(threads)
+                        page = page + 1
+        except AttributeError:
+            print "there was an error queueing the threads to download - are you sure your username and password are correct?"
     
     def dedupe_threads(self):
-        print "removing duplicate URLs"
-        self.thread_urls = list(set(self.thread_urls))
+        if self.thread_urls:
+            print "removing duplicate URLs"
+            self.thread_urls = list(set(self.thread_urls))
     
     def fetch_threads(self):
         self.messages = []
