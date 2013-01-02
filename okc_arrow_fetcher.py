@@ -98,7 +98,7 @@ class ArrowFetcher:
         return datetime.strptime(string.strip(), format)
     
     def write_messages(self, file_name):
-        self.messages.sort(key = lambda message: message.timestamp)  # sort by time
+        self.messages.sort(key = lambda message: (message.thread_url, message.timestamp))  # sort by sender, then time
         f = codecs.open(file_name, encoding='utf-8', mode='w')  # ugh, otherwise i think it will try to write ascii
         for message in self.messages:
             print "writing message for thread: " + message.thread_url
@@ -155,7 +155,7 @@ class ArrowFetcher:
         return message_list
     
     # http://stackoverflow.com/questions/1765848/remove-a-tag-using-beautifulsoup-but-keep-its-contents/1766002#1766002
-    def _strip_tags(self, html, invalid_tags=['a', 'span', 'strong', 'div']):
+    def _strip_tags(self, html, invalid_tags=['em', 'a', 'span', 'strong', 'div']):
         soup = BeautifulSoup(html)
         for tag in soup.findAll(True):
             if tag.name in invalid_tags:
