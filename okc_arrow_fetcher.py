@@ -65,6 +65,17 @@ Content-Length: %d
 class ArrowFetcher:
     base_url = 'http://www.okcupid.com'
     sleep_duration = 2.0  # base time to wait after each HTTP request, but this will be adjusted randomly
+    encoding_pairs = [('<br />', '\n'),
+                      ('&#35;', '#'),
+                      ('&amp;', '&'),
+                      ('&#38;', '&'),
+                      ('&#38;amp;', '&'),
+                      ('&lt;', '<'),
+                      ('&gt;', '>'),
+                      ('&quot;', '"'),
+                      ('&#38;quot;', '"'),
+                      ('&#39;', "'"),
+                      ('&mdash;', "--")]
     
     def __init__(self, username, password, thunderbird=False, debug=False):
         self.username = username
@@ -136,8 +147,11 @@ class ArrowFetcher:
         soup = self._safely_soupify(f)
         try:
             subject = soup.find('strong', {'id': 'message_heading'}).contents[0]
+            subject = unicode(subject)
+            for find, replace in self.encoding_pairs:
+                subject = subject.replace(unicode(find), unicode(replace))
         except AttributeError:
-            subject = ''
+            subject = unicode('')
         try:
             other_user = soup.find('a', {'class': 'buddyname'}).contents[0]
         except AttributeError:
@@ -150,14 +164,9 @@ class ArrowFetcher:
             body_contents = message.find('div', 'message_body')
             if body_contents:
                 body = self._strip_tags(body_contents.renderContents()).renderContents().strip()
-                for pair in [   ('<br />', '\n'), 
-                                ('&amp;', '&'),
-                                ('&lt;', '<'),
-                                ('&gt;', '>'),
-                                ('&quot;', '"'),
-                                ('&#39;', "'"),
-                                ('&mdash;', "—")]:
-                    body = body.replace(pair[0], pair[1])
+                for find, replace in self.encoding_pairs:
+                    body = body.replace(find, replace)
+                body = body.decode('utf-8')
                 timestamp = message.find('span','timestamp').find('span', 'fancydate')
                 if timestamp.decodeContents and timestamp.decodeContents():
                     timestamp = self.strptime(timestamp.decodeContents().strip())
@@ -172,8 +181,8 @@ class ArrowFetcher:
                                             unicode(sender),
                                             unicode(recipient),
                                             timestamp,
-                                            unicode(subject),
-                                            body.decode('utf-8'),
+                                            subject,
+                                            body,
                                             thunderbird=self.thunderbird))
             else:
                 continue  # control elements are also <li>'s in their html, so non-messages
