@@ -4,6 +4,7 @@
 import codecs
 from datetime import datetime
 from optparse import OptionParser
+import random
 import re
 import time
 import urllib, urllib2
@@ -63,7 +64,7 @@ Content-Length: %d
 
 class ArrowFetcher:
     base_url = 'http://www.okcupid.com'
-    sleep_duration = 3.0  # time to wait after each HTTP request
+    sleep_duration = 2.0  # base time to wait after each HTTP request, but this will be adjusted randomly
     
     def __init__(self, username, password, thunderbird=False, debug=False):
         self.username = username
@@ -82,7 +83,7 @@ class ArrowFetcher:
     
     def _request_read_sleep(self, url):
         f = urllib2.urlopen(url).read()
-        time.sleep(self.sleep_duration)
+        time.sleep(abs(self.sleep_duration + (random.randrange(-100, 100)/100.0)))
         return f
     
     def queue_threads(self):
