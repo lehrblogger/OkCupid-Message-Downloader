@@ -65,9 +65,10 @@ class ArrowFetcher:
     base_url = 'http://www.okcupid.com'
     sleep_duration = 3.0  # time to wait after each HTTP request
     
-    def __init__(self, username, password, thunderbird=False):
+    def __init__(self, username, password, thunderbird=False, debug=False):
         self.username = username
         self.thunderbird = thunderbird
+        self.debug = debug
         self.thread_urls = []
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor())
         urllib2.install_opener(opener)
@@ -89,7 +90,7 @@ class ArrowFetcher:
         try:
             for folder in range(1,4): # Inbox, Sent, Smiles
                 page = 0;
-                while (True):
+                while (page < 1 if self.debug else True):
                     print "queuing folder %s, page %s" % (folder, page)
                     f = self._request_read_sleep(self.base_url + '/messages?folder=' + str(folder) + '&low=' + str((page * 30) + 1))
                     soup = self._safely_soupify(f)
@@ -204,6 +205,9 @@ def main():
     parser.add_option("-t", "--thunderbird", dest="thunderbird",
                     help="format output for Thunderbird rather than as plaintext",
                     action='store_const', const=True, default=False)
+    parser.add_option("-d", "--debug", dest="debug",
+                    help="limit the number of threads fetched for debugging",
+                    action='store_const', const=True, default=False)
     (options, args) = parser.parse_args()
     if not options.username:
         print "Please specify your OkCupid username with either '-u' or '--username'"
@@ -212,7 +216,7 @@ def main():
     if not options.filename:
         print "Please specify the destination file with either '-f' or '--filename'"
     if options.username and options.password and options.filename:
-        arrow_fetcher = ArrowFetcher(options.username, options.password, thunderbird=options.thunderbird)
+        arrow_fetcher = ArrowFetcher(options.username, options.password, thunderbird=options.thunderbird, debug=options.debug)
         arrow_fetcher.queue_threads()
         arrow_fetcher.dedupe_threads()
         arrow_fetcher.fetch_threads()
