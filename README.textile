@@ -5,5 +5,7 @@ The time has come to deactivate my OkCupid account, but I was slightly unhappy a
 To use it, run it from the command line like this: 
 
     @python okc_arrow_fetcher.py -u your_username -p your_password -f 'the_full_path_to_some_empty_file'@
+    
+You can add the `-t` flag to get the output as a possibly-Thunderbird-compatible file rather than the default plaintext format, but I haven't really tested this. Put the file in a `Local` folder, and hopefully Thunderbird can read/process it from there. Let me know if it works!
 
 Note: It only works with BeautifulSoup v3.x, and not the newer v4.x.

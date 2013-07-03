@@ -12,15 +12,36 @@ from BeautifulSoup import BeautifulSoup, NavigableString
 
 
 class Message:
-    def __init__(self, thread_url, sender, recipient, timestamp, subject, content):
+    def __init__(self, thread_url, sender, recipient, timestamp, subject, content, thunderbird=False):
         self.thread_url = thread_url
         self.sender = sender
         self.recipient = recipient
         self.timestamp = timestamp
         self.subject = subject
         self.content = content
+        self.thunderbird = thunderbird
+    
     def __str__(self):
-        return """
+        if self.thunderbird:
+            msglength=len(self.content)
+            subject="OKC Message, length = " + str(msglength).zfill(4)  # leading zeros for message length
+            return """
+From - %s
+From: %s
+To: %s
+Subject: %s
+
+%s
+URL: %s
+
+"""            % (  self.timestamp.strftime('%a %b %d %H:%M:%S %Y'), 
+                    self.sender, 
+                    self.recipient, 
+                    subject,
+                    self.content,
+                    self.thread_url)
+        else:
+            return """
 URL: %s
 From: %s
 To: %s
@@ -44,8 +65,9 @@ class ArrowFetcher:
     base_url = 'http://www.okcupid.com'
     sleep_duration = 3.0  # time to wait after each HTTP request
     
-    def __init__(self, username, password):
+    def __init__(self, username, password, thunderbird=False):
         self.username = username
+        self.thunderbird = thunderbird
         self.thread_urls = []
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor())
         urllib2.install_opener(opener)
@@ -149,7 +171,8 @@ class ArrowFetcher:
                                             unicode(recipient),
                                             timestamp,
                                             unicode(subject),
-                                            body.decode('utf-8')))
+                                            body.decode('utf-8'),
+                                            thunderbird=self.thunderbird))
             else:
                 continue  # control elements are also <li>'s in their html, so non-messages
         return message_list
@@ -178,6 +201,9 @@ def main():
                       help="your OkCupid password")
     parser.add_option("-f", "--filename", dest="filename",
                     help="the file to which you want to write the data")
+    parser.add_option("-t", "--thunderbird", dest="thunderbird",
+                    help="format output for Thunderbird rather than as plaintext",
+                    action='store_const', const=True, default=False)
     (options, args) = parser.parse_args()
     if not options.username:
         print "Please specify your OkCupid username with either '-u' or '--username'"
@@ -186,7 +212,7 @@ def main():
     if not options.filename:
         print "Please specify the destination file with either '-f' or '--filename'"
     if options.username and options.password and options.filename:
-        arrow_fetcher = ArrowFetcher(options.username, options.password)
+        arrow_fetcher = ArrowFetcher(options.username, options.password, thunderbird=options.thunderbird)
         arrow_fetcher.queue_threads()
         arrow_fetcher.dedupe_threads()
         arrow_fetcher.fetch_threads()
