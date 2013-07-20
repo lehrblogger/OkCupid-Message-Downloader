@@ -161,17 +161,24 @@ class ArrowFetcher:
             except AttributeError:
                 other_user = ''
         for message in soup.find('ul', {'id': 'thread'}).findAll('li'):
+            message_type = re.sub(r'_.*$', '', message.get('id', 'unknown'))
             body_contents = message.find('div', 'message_body')
             if body_contents:
                 body = self._strip_tags(body_contents.renderContents()).renderContents().strip()
                 for find, replace in self.encoding_pairs:
                     body = body.replace(find, replace)
                 body = body.decode('utf-8')
-                timestamp = message.find('span','timestamp').find('span', 'fancydate')
-                if timestamp.decodeContents and timestamp.decodeContents():
-                    timestamp = self.strptime(timestamp.decodeContents().strip())
+                if message_type == 'broadcast':
+                    # TODO: make a better "guess" about the time of the broadcast.
+                    # Perhaps get the time of the next message/reply (there should be at least one), and set the time based on it.
+                    unknown_time = "Jan 1, 2000 &ndash; 12:00pm"
+                    timestamp = self.strptime(unknown_time)
                 else:
-                    timestamp = self.strptime(timestamp.text.strip())
+                    timestamp = message.find('span','timestamp').find('span', 'fancydate')
+                    if timestamp.decodeContents and timestamp.decodeContents():
+                        timestamp = self.strptime(timestamp.decodeContents().strip())
+                    else:
+                        timestamp = self.strptime(timestamp.text.strip())
                 sender = other_user
                 recipient = self.username
                 if message['class'].replace('preview', '').strip() == 'from_me':
