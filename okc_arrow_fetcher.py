@@ -35,7 +35,7 @@ Subject: %s
 %s
 URL: %s
 
-"""            % (  self.timestamp.strftime('%a %b %d %H:%M:%S %Y'),
+"""            % (  self.timestamp.strftime('%a %b %d %H:%M:%S %Y') if self.timestamp else None,
                     self.sender,
                     self.recipient,
                     subject,
@@ -56,10 +56,21 @@ Content-Length: %d
                     self.sender,
                     self.recipient,
                     self.timestamp,
-                    self.subject.strip(),
+                    self.subject.strip() if self.subject else None,
                     len(self.content),
                     self.content
                    )
+    
+
+class MessageMissing(Message):
+    def __init__(self, thread_url):
+        self.thread_url = thread_url
+        self.sender = None
+        self.recipient = None
+        self.timestamp = None
+        self.subject = None
+        self.content = "ERROR: message(s) not fetched"
+        self.thunderbird = False
     
 
 class ArrowFetcher:
@@ -127,7 +138,12 @@ class ArrowFetcher:
     def fetch_threads(self):
         self.messages = []
         for thread_url in self.thread_urls:
-            self.messages.extend(self._fetch_thread(thread_url))
+            try:
+                thread_messages = self._fetch_thread(thread_url)
+            except Exception, e:
+                thread_messages = [MessageMissing(self.base_url + thread_url)]
+                print "fetch thread failed for URL: %s with error %s" % (thread_url, e)
+            self.messages.extend(thread_messages)
     
     def strptime(self, string, format='%b %d, %Y &ndash; %I:%M%p'):
         return datetime.strptime(string.strip(), format)
