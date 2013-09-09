@@ -35,9 +35,9 @@ Subject: %s
 %s
 URL: %s
 
-"""            % (  self.timestamp.strftime('%a %b %d %H:%M:%S %Y'), 
-                    self.sender, 
-                    self.recipient, 
+"""            % (  self.timestamp.strftime('%a %b %d %H:%M:%S %Y'),
+                    self.sender,
+                    self.recipient,
                     subject,
                     self.content,
                     self.thread_url)
@@ -52,15 +52,15 @@ Content-Length: %d
 
 %s
 
-"""            % (  self.thread_url, 
-                    self.sender, 
-                    self.recipient, 
-                    self.timestamp, 
+"""            % (  self.thread_url,
+                    self.sender,
+                    self.recipient,
+                    self.timestamp,
                     self.subject.strip(),
                     len(self.content),
                     self.content
                    )
-
+    
 
 class ArrowFetcher:
     base_url = 'http://www.okcupid.com'
@@ -184,7 +184,7 @@ class ArrowFetcher:
                 if message['class'].replace('preview', '').strip() == 'from_me':
                     recipient = other_user
                     sender = self.username
-                message_list.append(Message(self.base_url + thread_url, 
+                message_list.append(Message(self.base_url + thread_url,
                                             unicode(sender),
                                             unicode(recipient),
                                             timestamp,
@@ -205,11 +205,11 @@ class ArrowFetcher:
                     if type(c) != NavigableString:
                         c = self._strip_tags(unicode(c), invalid_tags)
                         s += unicode(c).strip()
-                    else:     
+                    else:
                         s += unicode(c)
                 tag.replaceWith(s)
         return soup
-
+    
 
 def main():
     parser = OptionParser()
