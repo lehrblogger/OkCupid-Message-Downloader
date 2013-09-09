@@ -252,8 +252,13 @@ def main():
         arrow_fetcher = ArrowFetcher(options.username, options.password, thunderbird=options.thunderbird, debug=options.debug)
         arrow_fetcher.queue_threads()
         arrow_fetcher.dedupe_threads()
-        arrow_fetcher.fetch_threads()
-        arrow_fetcher.write_messages(options.filename)
+        try:
+            arrow_fetcher.fetch_threads()
+            arrow_fetcher.write_messages(options.filename)
+        except KeyboardInterrupt:
+            if options.debug:  # Write progress so far to the output file if we're debugging
+                arrow_fetcher.write_messages(options.filename)
+            raise KeyboardInterrupt
 
 if __name__ == '__main__':
     main()
