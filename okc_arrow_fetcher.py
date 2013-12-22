@@ -174,7 +174,7 @@ class ArrowFetcher:
         except AttributeError:
             try:
                 # messages from OkCupid itself are a special case
-                other_user = soup.find('ul', {'id': 'thread'}).find('p', 'signature').contents[0].partition('Message from ')[2]
+                other_user = soup.find('ul', {'id': 'thread'}).find('div', 'signature').contents[0].partition('Message from ')[2]
             except AttributeError:
                 other_user = ''
         for message in soup.find('ul', {'id': 'thread'}).findAll('li'):
