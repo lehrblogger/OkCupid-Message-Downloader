@@ -75,6 +75,7 @@ class MessageMissing(Message):
 
 class ArrowFetcher:
     base_url = 'http://www.okcupid.com'
+    secure_base_url = 'https://www.okcupid.com'
     sleep_duration = 2.0  # base time to wait after each HTTP request, but this will be adjusted randomly
     encoding_pairs = [('<br />', '\n'),
                       ('&#35;', '#'),
@@ -96,7 +97,7 @@ class ArrowFetcher:
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor())
         urllib2.install_opener(opener)
         params = urllib.urlencode(dict(username=username, password=password))
-        f = opener.open(self.base_url + '/login', params)
+        f = opener.open(self.secure_base_url + '/login', params)
         f.close()
     
     def _safely_soupify(self, f):
