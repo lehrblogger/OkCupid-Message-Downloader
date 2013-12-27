@@ -180,13 +180,13 @@ class ArrowFetcher:
         for message in soup.find('ul', {'id': 'thread'}).findAll('li'):
             message_type = re.sub(r'_.*$', '', message.get('id', 'unknown'))
             body_contents = message.find('div', 'message_body')
-            if body_contents and message_type != 'deleted' and message_type != 'quiver':
+            if body_contents:
                 body = self._strip_tags(body_contents.renderContents()).renderContents().strip()
                 for find, replace in self.encoding_pairs:
                     body = body.replace(find, replace)
                 body = body.decode('utf-8')
-                if message_type == 'broadcast':
-                    # TODO: make a better "guess" about the time of the broadcast.
+                if message_type in ['broadcast', 'deleted', 'quiver']:
+                    # TODO: make a better "guess" about the time of the broadcast, account deletion, or Quiver match.
                     # Perhaps get the time of the next message/reply (there should be at least one), and set the time based on it.
                     unknown_time = "Jan 1, 2000 &ndash; 12:00pm"
                     timestamp = self.strptime(unknown_time)
@@ -213,7 +213,7 @@ class ArrowFetcher:
         return message_list
     
     # http://stackoverflow.com/questions/1765848/remove-a-tag-using-beautifulsoup-but-keep-its-contents/1766002#1766002
-    def _strip_tags(self, html, invalid_tags=['em', 'a', 'span', 'strong', 'div']):
+    def _strip_tags(self, html, invalid_tags=['em', 'a', 'span', 'strong', 'div', 'p']):
         soup = BeautifulSoup(html)
         for tag in soup.findAll(True):
             if tag.name in invalid_tags:
