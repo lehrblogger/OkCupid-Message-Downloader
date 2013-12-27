@@ -180,7 +180,7 @@ class ArrowFetcher:
         for message in soup.find('ul', {'id': 'thread'}).findAll('li'):
             message_type = re.sub(r'_.*$', '', message.get('id', 'unknown'))
             body_contents = message.find('div', 'message_body')
-            if body_contents:
+            if body_contents and message_type != 'deleted' and message_type != 'quiver':
                 body = self._strip_tags(body_contents.renderContents()).renderContents().strip()
                 for find, replace in self.encoding_pairs:
                     body = body.replace(find, replace)
