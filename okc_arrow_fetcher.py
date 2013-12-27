@@ -170,7 +170,7 @@ class ArrowFetcher:
         except AttributeError:
             subject = unicode('')
         try:
-            other_user = soup.find('a', {'class': 'buddyname'}).contents[0]
+            other_user = soup.find('span', {'class': 'buddyname'}).find('a').contents[0]
         except AttributeError:
             try:
                 # messages from OkCupid itself are a special case
