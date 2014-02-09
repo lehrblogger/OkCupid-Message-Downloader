@@ -87,6 +87,7 @@ class ArrowFetcher:
                       ('&quot;', '"'),
                       ('&#38;quot;', '"'),
                       ('&#39;', "'"),
+                      ('&rsquo;', u'\u2019'),
                       ('&mdash;', "--")]
     
     def __init__(self, username, password, thunderbird=False, debug=False):
@@ -182,9 +183,9 @@ class ArrowFetcher:
             body_contents = message.find('div', 'message_body')
             if body_contents:
                 body = self._strip_tags(body_contents.renderContents()).renderContents().strip()
-                for find, replace in self.encoding_pairs:
-                    body = body.replace(find, replace)
                 body = body.decode('utf-8')
+                for find, replace in self.encoding_pairs:
+                    body = body.replace(unicode(find), unicode(replace))
                 if message_type in ['broadcast', 'deleted', 'quiver']:
                     # TODO: make a better "guess" about the time of the broadcast, account deletion, or Quiver match.
                     # Perhaps get the time of the next message/reply (there should be at least one), and set the time based on it.
