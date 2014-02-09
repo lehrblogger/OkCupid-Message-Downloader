@@ -120,7 +120,7 @@ class ArrowFetcher:
                     soup = self._safely_soupify(f)
                     end_pattern = re.compile('&folder=\d\';')
                     threads = [
-                        re.sub(end_pattern, '', li.find('p').find('a')['href'].partition('&folder=')[0])
+                        re.sub(end_pattern, '', li.find('a', {'class': 'open'} )['href'].partition('&folder=')[0])
                         for li in soup.find('ul', {'id': 'messages'}).findAll('li')
                     ]
                     if len(threads) == 0:  # break out of the infinite loop when we reach the end and there are no threads on the page
