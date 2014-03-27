@@ -148,7 +148,13 @@ class ArrowFetcher:
             self.messages.extend(thread_messages)
     
     def strptime(self, string, format='%b %d, %Y &ndash; %I:%M%p'):
-        return datetime.strptime(string.strip(), format)
+        formats = [format,"%m/%d/%Y", "%m/%d/%y"]
+        for aformat in formats:
+                try:
+                        return datetime.strptime(string.strip(), aformat)
+                except ValueError:
+                        continue
+        raise ValueError("datetime %s doesn't match known formats!" % string)
     
     def write_messages(self, file_name):
         self.messages.sort(key = lambda message: (message.thread_url, message.timestamp))  # sort by sender, then time
