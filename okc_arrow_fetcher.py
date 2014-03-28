@@ -147,15 +147,6 @@ class ArrowFetcher:
                 print "fetch thread failed for URL: %s with error %s" % (thread_url, e)
             self.messages.extend(thread_messages)
     
-    def strptime(self, string, format='%b %d, %Y &ndash; %I:%M%p'):
-        formats = [format,"%m/%d/%Y", "%m/%d/%y"]
-        for aformat in formats:
-                try:
-                        return datetime.strptime(string.strip(), aformat)
-                except ValueError:
-                        continue
-        raise ValueError("datetime %s doesn't match known formats!" % string)
-    
     def write_messages(self, file_name):
         self.messages.sort(key = lambda message: (message.thread_url, message.timestamp))  # sort by sender, then time
         f = codecs.open(file_name, encoding='utf-8', mode='w')  # ugh, otherwise i think it will try to write ascii
@@ -195,14 +186,10 @@ class ArrowFetcher:
                 if message_type in ['broadcast', 'deleted', 'quiver']:
                     # TODO: make a better "guess" about the time of the broadcast, account deletion, or Quiver match.
                     # Perhaps get the time of the next message/reply (there should be at least one), and set the time based on it.
-                    unknown_time = "Jan 1, 2000 &ndash; 12:00pm"
-                    timestamp = self.strptime(unknown_time)
+                    timestamp = datetime(2000, 1, 1, 12, 0)
                 else:
-                    timestamp = message.find('span','timestamp').find('span', 'fancydate')
-                    if timestamp.decodeContents and timestamp.decodeContents():
-                        timestamp = self.strptime(timestamp.decodeContents().strip())
-                    else:
-                        timestamp = self.strptime(timestamp.text.strip())
+                    fancydate_js = message.find('span', 'timestamp').find('script').string
+                    timestamp = datetime.fromtimestamp(int(fancydate_js.split(', ')[1]))
                 sender = other_user
                 recipient = self.username
                 if message['class'].replace('preview', '').strip() == 'from_me':
