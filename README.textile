@@ -1,3 +1,5 @@
+*Note: OkCupid recently made significant changes to the layout and markup of Messages, so this is not currently properly working.*
+
 The time has come to deactivate my OkCupid account, but I was slightly unhappy about leaving all my messages in a locked silo, as they contained a nontrivial amount of emotionally significant correspondence. I googled around a bit for scripts that other people had written to do download them, and found one "written for Greasemonkey":http://mkay.saverpigeeks.com/FetchOK.xhtml and another "written in Java":http://mkay.saverpigeeks.com/FetchOK.xhtml, but neither seemed to be recent enough to be able to handle the current OkC HTML. I _strongly_ prefer the "BeautifulSoup":http://www.crummy.com/software/BeautifulSoup/ Python library for dealing with HTML, so decided to write my own instead of modifying either of those.
 
 *Find it here! Use it quickly* to download and archive your own messages! I probably won't update it as the site updates, but feel free to send a pull request :)
