@@ -117,7 +117,7 @@ class ArrowFetcher:
             for folder in range(1,4): # Inbox, Sent, Smiles
                 page = 0;
                 while (page < 1 if self.debug else True):
-                    logging.info("queuing folder %s, page %s", folder, page)
+                    logging.info("Queuing folder %s, page %s", folder, page)
                     f = self._request_read_sleep(self.base_url + '/messages?folder=' + str(folder) + '&low=' + str((page * 30) + 1))
                     soup = self._safely_soupify(f)
                     end_pattern = re.compile('&folder=\d\';')
@@ -181,8 +181,7 @@ class ArrowFetcher:
             message_type = re.sub(r'_.*$', '', message.get('id', 'unknown'))
             body_contents = message.find('div', 'message_body')
             if body_contents:
-                body = self._strip_tags(body_contents.renderContents()).renderContents().strip()
-                body = body.decode('utf-8')
+                body = self._strip_tags(body_contents.renderContents().decode('UTF-8')).strip()
                 for find, replace in self.encoding_pairs:
                     body = body.replace(unicode(find), unicode(replace))
                 if message_type in ['broadcast', 'deleted', 'quiver']:
@@ -221,7 +220,7 @@ class ArrowFetcher:
                     else:
                         s += unicode(c)
                 tag.replaceWith(s)
-        return soup
+        return soup.renderContents().decode('UTF-8')
 
 
 def main():
