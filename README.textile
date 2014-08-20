@@ -11,6 +11,7 @@ To use it, run it from the command line like this:
 You can add the `-t` flag to get the output as a possibly-Thunderbird-compatible file rather than the default plaintext format, but I haven't really tested this. Put the file in a `Local` folder, and hopefully Thunderbird can read/process it from there. Let me know if it works!
 
 h2. History
+
 The time has come to deactivate my OkCupid account, but I was slightly unhappy about leaving all my messages in a locked silo, as they contained a nontrivial amount of emotionally significant correspondence. I googled around a bit for scripts that other people had written to do download them, and found one "written for Greasemonkey":http://mkay.saverpigeeks.com/FetchOK.xhtml and another "written in Java":http://mkay.saverpigeeks.com/FetchOK.xhtml, but neither seemed to be recent enough to be able to handle the current OkC HTML. I _strongly_ prefer the "BeautifulSoup":http://www.crummy.com/software/BeautifulSoup/ Python library for dealing with HTML, so decided to write my own instead of modifying either of those.
 
 *Find it here! Use it quickly* to download and archive your own messages! I probably won't update it as the site updates, but feel free to send a pull request :)
