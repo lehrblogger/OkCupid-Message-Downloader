@@ -18,4 +18,6 @@ The time has come to deactivate my OkCupid account, but I was slightly unhappy a
 
 h2. Related projects
 
+If you are interested in this project, chances are that the following project(s) might also be worth a look.
+
 * "OKCupid-questions-downloader":https://github.com/4Christopher/OKCupid-questions-downloader
