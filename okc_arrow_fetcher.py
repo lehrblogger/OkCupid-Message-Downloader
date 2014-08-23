@@ -7,7 +7,8 @@ from optparse import OptionParser
 import random
 import re
 import time
-import urllib, urllib2
+import urllib
+import urllib2
 import logging
 
 from BeautifulSoup import BeautifulSoup, NavigableString
@@ -25,7 +26,7 @@ class Message:
 
     def __str__(self):
         if self.thunderbird:
-            msglength=len(self.content)
+            msglength = len(self.content)
             subject="OKC Message, length = " + str(msglength).zfill(4)  # leading zeros for message length
             return """
 From - %s
@@ -60,10 +61,11 @@ Content-Length: %d
                     self.subject.strip() if self.subject else None,
                     len(self.content),
                     self.content
-                   )
+                    )
 
 
 class MessageMissing(Message):
+
     def __init__(self, thread_url):
         self.thread_url = thread_url
         self.sender = None
@@ -114,8 +116,8 @@ class ArrowFetcher:
     def queue_threads(self):
         self.thread_urls = []
         try:
-            for folder in range(1,4): # Inbox, Sent, Smiles
-                page = 0;
+            for folder in range(1, 4):  # Inbox, Sent, Smiles
+                page = 0
                 while (page < 1 if self.debug else True):
                     logging.info("Queuing folder %s, page %s", folder, page)
                     f = self._request_read_sleep(self.base_url + '/messages?folder=' + str(folder) + '&low=' + str((page * 30) + 1))
@@ -224,7 +226,7 @@ class ArrowFetcher:
             if tag.name in invalid_tags:
                 s = ""
                 for c in tag.contents:
-                    if type(c) != NavigableString:
+                    if not isinstance(c, NavigableString):
                         c = self._strip_tags(unicode(c), invalid_tags)
                         s += unicode(c).strip()
                     else:
@@ -240,15 +242,15 @@ def main():
     parser.add_option("-p", "--password", dest="password",
                       help="your OkCupid password")
     parser.add_option("-f", "--filename", dest="filename",
-                    help="the file to which you want to write the data")
+                      help="the file to which you want to write the data")
     parser.add_option("-t", "--thunderbird", dest="thunderbird",
-                    help="format output for Thunderbird rather than as plaintext",
-                    action='store_const', const=True, default=False)
+                      help="format output for Thunderbird rather than as plaintext",
+                      action='store_const', const=True, default=False)
     parser.add_option("-d", "--debug", dest="debug",
-                    help="limit the number of threads fetched for debugging",
-                    action='store_const', const=True, default=False)
+                      help="limit the number of threads fetched for debugging",
+                      action='store_const', const=True, default=False)
     (options, args) = parser.parse_args()
-    logging_format='%(levelname)s: %(message)s'
+    logging_format = '%(levelname)s: %(message)s'
     if options.debug:
         logging.basicConfig(format=logging_format, level=logging.DEBUG)
         logging.debug("Debug mode turned on.")
@@ -261,7 +263,11 @@ def main():
     if not options.filename:
         logging.error("Please specify the destination file with either '-f' or '--filename'")
     if options.username and options.password and options.filename:
-        arrow_fetcher = ArrowFetcher(options.username, options.password, thunderbird=options.thunderbird, debug=options.debug)
+        arrow_fetcher = ArrowFetcher(
+            options.username,
+            options.password,
+            thunderbird=options.thunderbird,
+            debug=options.debug)
         arrow_fetcher.queue_threads()
         arrow_fetcher.dedupe_threads()
         try:
