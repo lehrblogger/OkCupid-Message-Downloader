@@ -180,6 +180,8 @@ class ArrowFetcher:
         for message in soup.find('ul', {'id': 'thread'}).findAll('li'):
             message_type = re.sub(r'_.*$', '', message.get('id', 'unknown'))
             body_contents = message.find('div', 'message_body')
+            if not body_contents and message_type == 'deleted':
+                body_contents = message
             if body_contents:
                 body = self._strip_tags(body_contents.renderContents().decode('UTF-8')).strip()
                 for find, replace in self.encoding_pairs:
@@ -193,9 +195,12 @@ class ArrowFetcher:
                     timestamp = datetime.fromtimestamp(int(fancydate_js.split(', ')[1]))
                 sender = other_user
                 recipient = self.username
-                if message['class'].replace('preview', '').strip() == 'from_me':
-                    recipient = other_user
-                    sender = self.username
+                try:
+                    if message['class'].replace('preview', '').strip() == 'from_me':
+                        recipient = other_user
+                        sender = self.username
+                except KeyError:
+                    pass
                 message_list.append(Message(self.base_url + thread_url,
                                             unicode(sender),
                                             unicode(recipient),
