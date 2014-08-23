@@ -141,14 +141,11 @@ class ArrowFetcher:
     def fetch_threads(self):
         self.messages = []
         for thread_url in self.thread_urls:
-            # logging.debug(thread_url)
-            # if thread_url != '/messages?readmsg=true&threadid=$ID':
-                # continue
             try:
                 thread_messages = self._fetch_thread(thread_url)
             except Exception as e:
                 thread_messages = [MessageMissing(self.base_url + thread_url)]
-                logging.error("Fetch thread failed for URL: %s with error %s", thread_url, e)
+                logging.debug("Fetch thread failed for URL: %s with error %s", thread_url, e)
             self.messages.extend(thread_messages)
 
     def write_messages(self, file_name):
@@ -161,7 +158,7 @@ class ArrowFetcher:
 
     def _fetch_thread(self, thread_url):
         message_list = []
-        logging.info("Fetching thread: " + self.base_url + thread_url)
+        logging.debug("Fetching thread: " + self.base_url + thread_url)
         f = self._request_read_sleep(self.base_url + thread_url)
         soup = self._safely_soupify(f)
         try:
@@ -182,17 +179,11 @@ class ArrowFetcher:
                 other_user = ''
         for message in soup.find('ul', {'id': 'thread'}).findAll('li'):
             message_type = re.sub(r'_.*$', '', message.get('id', 'unknown'))
-            logging.debug("Raw message (type: %s): %s", type(message), message)
             body_contents = message.find('div', 'message_body')
-            if not body_contents and message_type == 'deleted':
-                body_contents = message
             if body_contents:
-                logging.debug("Message (type: %s): %s", message_type, body_contents)
                 body = self._strip_tags(body_contents.renderContents().decode('UTF-8')).strip()
-                logging.debug("Message after tag removing: %s", body)
                 for find, replace in self.encoding_pairs:
                     body = body.replace(unicode(find), unicode(replace))
-                logging.debug("Message after HTML entity conversion: %s", body)
                 if message_type in ['broadcast', 'deleted', 'quiver']:
                     # TODO: make a better "guess" about the time of the broadcast, account deletion, or Quiver match.
                     # Perhaps get the time of the next message/reply (there should be at least one), and set the time based on it.
@@ -202,13 +193,9 @@ class ArrowFetcher:
                     timestamp = datetime.fromtimestamp(int(fancydate_js.split(', ')[1]))
                 sender = other_user
                 recipient = self.username
-                try:
-                    if message['class'].replace('preview', '').strip() == 'from_me':
-                        recipient = other_user
-                        sender = self.username
-                except KeyError:
-                    pass
-                logging.debug("Body: %s", body)
+                if message['class'].replace('preview', '').strip() == 'from_me':
+                    recipient = other_user
+                    sender = self.username
                 message_list.append(Message(self.base_url + thread_url,
                                             unicode(sender),
                                             unicode(recipient),
@@ -237,6 +224,7 @@ class ArrowFetcher:
 
 
 def main():
+    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
     parser = OptionParser()
     parser.add_option("-u", "--username", dest="username",
                       help="your OkCupid username")
@@ -251,12 +239,6 @@ def main():
                     help="limit the number of threads fetched for debugging",
                     action='store_const', const=True, default=False)
     (options, args) = parser.parse_args()
-    logging_format='%(levelname)s: %(message)s'
-    if options.debug:
-        logging.basicConfig(format=logging_format, level=logging.DEBUG)
-        logging.debug("Debug mode turned on.")
-    else:
-        logging.basicConfig(format=logging_format, level=logging.INFO)
     if not options.username:
         logging.error("Please specify your OkCupid username with either '-u' or '--username'")
     if not options.password:
@@ -274,7 +256,6 @@ def main():
             if options.debug:  # Write progress so far to the output file if we're debugging
                 arrow_fetcher.write_messages(options.filename)
             raise KeyboardInterrupt
-    logging.info("Done.")
 
 if __name__ == '__main__':
     main()
