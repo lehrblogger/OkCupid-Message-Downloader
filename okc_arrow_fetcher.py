@@ -7,7 +7,8 @@ from optparse import OptionParser
 import random
 import re
 import time
-import urllib, urllib2
+import urllib
+import urllib2
 import logging
 
 from BeautifulSoup import BeautifulSoup, NavigableString
@@ -25,7 +26,7 @@ class Message:
 
     def __str__(self):
         if self.thunderbird:
-            msglength=len(self.content)
+            msglength = len(self.content)
             subject="OKC Message, length = " + str(msglength).zfill(4)  # leading zeros for message length
             return """
 From - %s
@@ -60,10 +61,11 @@ Content-Length: %d
                     self.subject.strip() if self.subject else None,
                     len(self.content),
                     self.content
-                   )
+                    )
 
 
 class MessageMissing(Message):
+
     def __init__(self, thread_url):
         self.thread_url = thread_url
         self.sender = None
@@ -114,8 +116,8 @@ class ArrowFetcher:
     def queue_threads(self):
         self.thread_urls = []
         try:
-            for folder in range(1,4): # Inbox, Sent, Smiles
-                page = 0;
+            for folder in range(1, 4):  # Inbox, Sent, Smiles
+                page = 0
                 while (page < 1 if self.debug else True):
                     logging.info("Queuing folder %s, page %s", folder, page)
                     f = self._request_read_sleep(self.base_url + '/messages?folder=' + str(folder) + '&low=' + str((page * 30) + 1))
@@ -145,7 +147,7 @@ class ArrowFetcher:
                 thread_messages = self._fetch_thread(thread_url)
             except Exception as e:
                 thread_messages = [MessageMissing(self.base_url + thread_url)]
-                logging.debug("Fetch thread failed for URL: %s with error %s", thread_url, e)
+                logging.error("Fetch thread failed for URL: %s with error %s", thread_url, e)
             self.messages.extend(thread_messages)
 
     def write_messages(self, file_name):
@@ -158,7 +160,7 @@ class ArrowFetcher:
 
     def _fetch_thread(self, thread_url):
         message_list = []
-        logging.debug("Fetching thread: " + self.base_url + thread_url)
+        logging.info("Fetching thread: " + self.base_url + thread_url)
         f = self._request_read_sleep(self.base_url + thread_url)
         soup = self._safely_soupify(f)
         try:
@@ -179,13 +181,17 @@ class ArrowFetcher:
                 other_user = ''
         for message in soup.find('ul', {'id': 'thread'}).findAll('li'):
             message_type = re.sub(r'_.*$', '', message.get('id', 'unknown'))
+            logging.debug("Raw message (type: %s): %s", type(message), message)
             body_contents = message.find('div', 'message_body')
             if not body_contents and message_type == 'deleted':
                 body_contents = message
             if body_contents:
+                logging.debug("Message (type: %s): %s", message_type, body_contents)
                 body = self._strip_tags(body_contents.renderContents().decode('UTF-8')).strip()
+                logging.debug("Message after tag removing: %s", body)
                 for find, replace in self.encoding_pairs:
                     body = body.replace(unicode(find), unicode(replace))
+                logging.debug("Message after HTML entity conversion: %s", body)
                 if message_type in ['broadcast', 'deleted', 'quiver']:
                     # TODO: make a better "guess" about the time of the broadcast, account deletion, or Quiver match.
                     # Perhaps get the time of the next message/reply (there should be at least one), and set the time based on it.
@@ -201,6 +207,7 @@ class ArrowFetcher:
                         sender = self.username
                 except KeyError:
                     pass
+                logging.debug("Body: %s", body)
                 message_list.append(Message(self.base_url + thread_url,
                                             unicode(sender),
                                             unicode(recipient),
@@ -219,7 +226,7 @@ class ArrowFetcher:
             if tag.name in invalid_tags:
                 s = ""
                 for c in tag.contents:
-                    if type(c) != NavigableString:
+                    if not isinstance(c, NavigableString):
                         c = self._strip_tags(unicode(c), invalid_tags)
                         s += unicode(c).strip()
                     else:
@@ -229,21 +236,26 @@ class ArrowFetcher:
 
 
 def main():
-    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
     parser = OptionParser()
     parser.add_option("-u", "--username", dest="username",
                       help="your OkCupid username")
     parser.add_option("-p", "--password", dest="password",
                       help="your OkCupid password")
     parser.add_option("-f", "--filename", dest="filename",
-                    help="the file to which you want to write the data")
+                      help="the file to which you want to write the data")
     parser.add_option("-t", "--thunderbird", dest="thunderbird",
-                    help="format output for Thunderbird rather than as plaintext",
-                    action='store_const', const=True, default=False)
+                      help="format output for Thunderbird rather than as plaintext",
+                      action='store_const', const=True, default=False)
     parser.add_option("-d", "--debug", dest="debug",
-                    help="limit the number of threads fetched for debugging",
-                    action='store_const', const=True, default=False)
+                      help="limit the number of threads fetched for debugging",
+                      action='store_const', const=True, default=False)
     (options, args) = parser.parse_args()
+    logging_format = '%(levelname)s: %(message)s'
+    if options.debug:
+        logging.basicConfig(format=logging_format, level=logging.DEBUG)
+        logging.debug("Debug mode turned on.")
+    else:
+        logging.basicConfig(format=logging_format, level=logging.INFO)
     if not options.username:
         logging.error("Please specify your OkCupid username with either '-u' or '--username'")
     if not options.password:
@@ -251,7 +263,11 @@ def main():
     if not options.filename:
         logging.error("Please specify the destination file with either '-f' or '--filename'")
     if options.username and options.password and options.filename:
-        arrow_fetcher = ArrowFetcher(options.username, options.password, thunderbird=options.thunderbird, debug=options.debug)
+        arrow_fetcher = ArrowFetcher(
+            options.username,
+            options.password,
+            thunderbird=options.thunderbird,
+            debug=options.debug)
         arrow_fetcher.queue_threads()
         arrow_fetcher.dedupe_threads()
         try:
@@ -261,6 +277,7 @@ def main():
             if options.debug:  # Write progress so far to the output file if we're debugging
                 arrow_fetcher.write_messages(options.filename)
             raise KeyboardInterrupt
+    logging.info("Done.")
 
 if __name__ == '__main__':
     main()
