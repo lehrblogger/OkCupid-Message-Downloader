@@ -77,7 +77,6 @@ class MessageMissing(Message):
 
 
 class ArrowFetcher:
-    base_url = 'http://www.okcupid.com'
     secure_base_url = 'https://www.okcupid.com'
     sleep_duration = 2.0  # base time to wait after each HTTP request, but this will be adjusted randomly
     encoding_pairs = [('<br />', '\n'),
@@ -120,7 +119,7 @@ class ArrowFetcher:
                 page = 0
                 while (page < 1 if self.debug else True):
                     logging.info("Queuing folder %s, page %s", folder, page)
-                    f = self._request_read_sleep(self.base_url + '/messages?folder=' + str(folder) + '&low=' + str((page * 30) + 1))
+                    f = self._request_read_sleep(self.secure_base_url + '/messages?folder=' + str(folder) + '&low=' + str((page * 30) + 1))
                     soup = self._safely_soupify(f)
                     end_pattern = re.compile('&folder=\d\';')
                     threads = [
@@ -146,7 +145,7 @@ class ArrowFetcher:
             try:
                 thread_messages = self._fetch_thread(thread_url)
             except Exception as e:
-                thread_messages = [MessageMissing(self.base_url + thread_url)]
+                thread_messages = [MessageMissing(self.secure_base_url + thread_url)]
                 logging.error("Fetch thread failed for URL: %s with error %s", thread_url, e)
             self.messages.extend(thread_messages)
 
@@ -160,8 +159,8 @@ class ArrowFetcher:
 
     def _fetch_thread(self, thread_url):
         message_list = []
-        logging.info("Fetching thread: " + self.base_url + thread_url)
-        f = self._request_read_sleep(self.base_url + thread_url)
+        logging.info("Fetching thread: " + self.secure_base_url + thread_url)
+        f = self._request_read_sleep(self.secure_base_url + thread_url)
         soup = self._safely_soupify(f)
         try:
             subject = soup.find('strong', {'id': 'message_heading'}).contents[0]
@@ -208,7 +207,7 @@ class ArrowFetcher:
                 except KeyError:
                     pass
                 logging.debug("Body: %s", body)
-                message_list.append(Message(self.base_url + thread_url,
+                message_list.append(Message(self.secure_base_url + thread_url,
                                             unicode(sender),
                                             unicode(recipient),
                                             timestamp,
