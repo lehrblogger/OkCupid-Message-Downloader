@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -e
+
+function req {
+	local program="$1"
+
+	if [[ -z "$(which "$program")" ]];
+	then
+		echo "$program is required" >&2
+		exit 1
+	fi
+}
+
+req python2.7
+req virtualenv
+req pip
+
+
+OKCMD_VENV="${BASH_SOURCE%/*}/.okcmd-virtualenv"
+
+[[ -d "$OKCMD_VENV" ]] || NEEDS_INSTALLATION="true"
+
+if [[ "$NEEDS_INSTALLATION" == "true" ]];
+then
+	# Create new virtualenv directory.
+	virtualenv --python python2.7 --no-site-packages "${OKCMD_VENV}"
+
+	# Just an empty line to group output lines.
+	echo
+fi
+
+# Activate virtual environment.
+source "${OKCMD_VENV}/bin/activate"
+
+if [[ "$NEEDS_INSTALLATION" == "true" ]];
+then
+	# Install python packages/dependencies.
+	pip install --no-deps --requirement requirements.txt
+
+	# Just an empty line to group output lines.
+	echo
+fi
+
+# Download messages.
+python "${BASH_SOURCE%/*}/okc_arrow_fetcher.py" "$@"
+
+# Deactivate virtual environment.
+deactivate
