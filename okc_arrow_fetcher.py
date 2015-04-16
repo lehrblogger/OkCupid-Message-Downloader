@@ -7,6 +7,7 @@ from optparse import OptionParser
 import random
 import re
 import time
+import cookielib
 import urllib
 import urllib2
 import logging
@@ -92,16 +93,11 @@ class ArrowFetcher:
                       ('&rsquo;', u'\u2019'),
                       ('&mdash;', "--")]
 
-    def __init__(self, username, password, thunderbird=False, debug=False):
+    def __init__(self, username, thunderbird=False, debug=False):
         self.username = username
         self.thunderbird = thunderbird
         self.debug = debug
         self.thread_urls = []
-        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor())
-        urllib2.install_opener(opener)
-        params = urllib.urlencode(dict(username=username, password=password))
-        f = opener.open(self.secure_base_url + '/login', params)
-        f.close()
 
     def _safely_soupify(self, f):
         f = f.partition("function autocoreError")[0] + '</body></html>' # wtf okc with the weirdly encoded "</scr' + 'ipt>'"-type statements in your javascript
@@ -233,6 +229,44 @@ class ArrowFetcher:
                 tag.replaceWith(s)
         return soup.renderContents().decode('UTF-8')
 
+class OkcupidState:
+    def __init__(self, username, filename, thunderbird, debug):
+        self.username = username
+        self.filename = filename
+        self.thunderbird = thunderbird
+        self.debug = debug
+        self.cookie_jar = cookielib.CookieJar()
+        self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cookie_jar))
+        urllib2.install_opener(self.opener)
+
+    def _setOpenerUrl(self, url, params=None):
+        f = self.opener.open(url, params)
+        f.close()
+        logging.debug("Cookie jar: %s", self.cookie_jar)
+
+    def fetch(self):
+        arrow_fetcher = ArrowFetcher(
+            self.username,
+            thunderbird=self.thunderbird,
+            debug=self.debug)
+        arrow_fetcher.queue_threads()
+        arrow_fetcher.dedupe_threads()
+        try:
+            arrow_fetcher.fetch_threads()
+            arrow_fetcher.write_messages(self.filename)
+        except KeyboardInterrupt:
+            if self.debug:  # Write progress so far to the output file if we're debugging
+                arrow_fetcher.write_messages(self.filename)
+            raise KeyboardInterrupt
+
+    def use_password(self, password):
+        logging.debug("Using password.")
+        params = urllib.urlencode(dict(username=self.username, password=password))
+        self._setOpenerUrl(ArrowFetcher.secure_base_url + '/login', params)
+
+    def use_autologin(self, autologin):
+        logging.debug("Using autologin url: %s", autologin)
+        self._setOpenerUrl(autologin)
 
 def main():
     parser = OptionParser()
@@ -248,7 +282,10 @@ def main():
     parser.add_option("-d", "--debug", dest="debug",
                       help="limit the number of threads fetched for debugging",
                       action='store_const', const=True, default=False)
+    parser.add_option("-a", "--autologin", dest="autologin",
+                      help="a link from an OkCupid email, which contains your login credentials. Use instead of a password.")
     (options, args) = parser.parse_args()
+    options_ok = True
     logging_format = '%(levelname)s: %(message)s'
     if options.debug:
         logging.basicConfig(format=logging_format, level=logging.DEBUG)
@@ -257,25 +294,22 @@ def main():
         logging.basicConfig(format=logging_format, level=logging.INFO)
     if not options.username:
         logging.error("Please specify your OkCupid username with either '-u' or '--username'")
-    if not options.password:
+    if not options.autologin and not options.password:
         logging.error("Please specify your OkCupid password with either '-p' or '--password'")
+        options_ok = False
+    if options.autologin and options.password:
+        logging.error("Don't specify both autologin and password")
+        options_ok = False
     if not options.filename:
         logging.error("Please specify the destination file with either '-f' or '--filename'")
-    if options.username and options.password and options.filename:
-        arrow_fetcher = ArrowFetcher(
-            options.username,
-            options.password,
-            thunderbird=options.thunderbird,
-            debug=options.debug)
-        arrow_fetcher.queue_threads()
-        arrow_fetcher.dedupe_threads()
-        try:
-            arrow_fetcher.fetch_threads()
-            arrow_fetcher.write_messages(options.filename)
-        except KeyboardInterrupt:
-            if options.debug:  # Write progress so far to the output file if we're debugging
-                arrow_fetcher.write_messages(options.filename)
-            raise KeyboardInterrupt
+        options_ok = False
+    if options_ok:
+        state = OkcupidState(options.username, options.filename, options.thunderbird, options.debug)
+        if options.username and options.password:
+            state.use_password(options.password)
+        if options.autologin:
+            state.use_autologin(options.autologin)
+        state.fetch()
     logging.info("Done.")
 
 if __name__ == '__main__':
