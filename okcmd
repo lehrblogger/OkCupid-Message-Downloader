@@ -29,6 +29,9 @@ then
 	echo
 fi
 
+# Deactivate virtual environment before exiting script.
+trap deactivate EXIT;
+
 # Activate virtual environment.
 source "${OKCMD_VENV}/bin/activate"
 
@@ -43,6 +46,3 @@ fi
 
 # Download messages.
 python "${BASH_SOURCE%/*}/okc_arrow_fetcher.py" "$@"
-
-# Deactivate virtual environment.
-deactivate
