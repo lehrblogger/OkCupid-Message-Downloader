@@ -295,7 +295,7 @@ def main():
     if not options.username:
         logging.error("Please specify your OkCupid username with either '-u' or '--username'")
     if not options.autologin and not options.password:
-        logging.error("Please specify your OkCupid password with either '-p' or '--password'")
+        logging.error("Please specify your OkCupid password with either '-p' or '--password' (or use '-a' or '--autologin')")
         options_ok = False
     if options.autologin and options.password:
         logging.error("Don't specify both autologin and password")

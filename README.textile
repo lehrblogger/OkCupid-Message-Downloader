@@ -18,7 +18,7 @@ You can add the @-t@ flag to get the output as a possibly-Thunderbird-compatible
 
 h3. Advanced usage
 
-@--autologin@ can be used instead of @--password@. Supply it with a link that will automatically log you in to OkCupid; you can find these links in emails sent to you from Okcupid. One example is the logotype in top/new matches emails - right click and choose "copy link", then use it with the @--autologin@ argument.
+@--autologin@ can be used instead of @--password@. Supply it with a link that will automatically log you in to OkCupid; you can find these links in emails sent to you from Okcupid. One example is the logotype in top/new matches emails - right click and choose "copy link", then use it with the @--autologin@ argument. Usage requires that _auto login from emails_ is enabled; check your privacy settings on the OKCupid web site.
 
 @--debug@ shows _a lot_ more output.
 
