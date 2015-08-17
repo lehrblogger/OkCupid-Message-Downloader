@@ -12,7 +12,7 @@ import urllib
 import urllib2
 import logging
 
-from BeautifulSoup import BeautifulSoup, NavigableString
+from bs4 import BeautifulSoup, NavigableString
 
 
 class Message:
@@ -81,6 +81,7 @@ class ArrowFetcher:
     secure_base_url = 'https://www.okcupid.com'
     sleep_duration = 2.0  # base time to wait after each HTTP request, but this will be adjusted randomly
     encoding_pairs = [('<br />', '\n'),
+                      ('<br/>', '\n'),
                       ('&#35;', '#'),
                       ('&amp;', '&'),
                       ('&#38;', '&'),
@@ -101,7 +102,7 @@ class ArrowFetcher:
 
     def _safely_soupify(self, f):
         f = f.partition("function autocoreError")[0] + '</body></html>' # wtf okc with the weirdly encoded "</scr' + 'ipt>'"-type statements in your javascript
-        return(BeautifulSoup(f))
+        return(BeautifulSoup(f, "html.parser"))
 
     def _request_read_sleep(self, url):
         f = urllib2.urlopen(url).read()
@@ -120,7 +121,7 @@ class ArrowFetcher:
                     end_pattern = re.compile('&folder=\d\';')
                     threads = [
                         re.sub(end_pattern, '', li.find('a', {'class': 'open'} )['href'].partition('&folder=')[0])
-                        for li in soup.find('ul', {'id': 'messages'}).findAll('li')
+                        for li in soup.find('ul', {'id': 'messages'}).find_all('li')
                     ]
                     if len(threads) == 0:  # break out of the infinite loop when we reach the end and there are no threads on the page
                         break
@@ -132,8 +133,11 @@ class ArrowFetcher:
 
     def dedupe_threads(self):
         if self.thread_urls:
-            logging.debug("Removing duplicate URLs")
+            before = len(self.thread_urls)
+            logging.debug("Removing duplicate thread URLs")
             self.thread_urls = list(set(self.thread_urls))
+            after = len(self.thread_urls)
+            logging.debug("Removed %s thread URLs (from %s to %s)", before - after, before, after)
 
     def fetch_threads(self):
         self.messages = []
@@ -158,6 +162,7 @@ class ArrowFetcher:
         logging.info("Fetching thread: " + self.secure_base_url + thread_url)
         f = self._request_read_sleep(self.secure_base_url + thread_url)
         soup = self._safely_soupify(f)
+        logging.debug("Raw full-page (type: %s): %s", type(soup), soup)
         try:
             subject = soup.find('strong', {'id': 'message_heading'}).contents[0]
             subject = unicode(subject)
@@ -174,7 +179,9 @@ class ArrowFetcher:
                 other_user = soup.find('ul', {'id': 'thread'}).find('div', 'signature').contents[0].partition('Message from ')[2]
             except AttributeError:
                 other_user = ''
-        for message in soup.find('ul', {'id': 'thread'}).findAll('li'):
+        messages = soup.find('ul', {'id': 'thread'}).find_all('li')
+        logging.debug("Raw messages (type: %s): %s", type(messages), messages)
+        for message in messages:
             message_type = re.sub(r'_.*$', '', message.get('id', 'unknown'))
             logging.debug("Raw message (type: %s): %s", type(message), message)
             body_contents = message.find('div', 'message_body')
@@ -182,7 +189,7 @@ class ArrowFetcher:
                 body_contents = message
             if body_contents:
                 logging.debug("Message (type: %s): %s", message_type, body_contents)
-                body = self._strip_tags(body_contents.renderContents().decode('UTF-8')).strip()
+                body = self._strip_tags(body_contents.encode_contents().decode('UTF-8')).strip()
                 logging.debug("Message after tag removing: %s", body)
                 for find, replace in self.encoding_pairs:
                     body = body.replace(unicode(find), unicode(replace))
@@ -197,7 +204,7 @@ class ArrowFetcher:
                 sender = other_user
                 recipient = self.username
                 try:
-                    if message['class'].replace('preview', '').strip() == 'from_me':
+                    if any(clazz.replace('preview', '').strip() == 'from_me' for clazz in message['class']):
                         recipient = other_user
                         sender = self.username
                 except KeyError:
@@ -216,8 +223,8 @@ class ArrowFetcher:
 
     # http://stackoverflow.com/questions/1765848/remove-a-tag-using-beautifulsoup-but-keep-its-contents/1766002#1766002
     def _strip_tags(self, html, invalid_tags=['em', 'a', 'span', 'strong', 'div', 'p']):
-        soup = BeautifulSoup(html)
-        for tag in soup.findAll(True):
+        soup = BeautifulSoup(html, "html.parser")
+        for tag in soup.find_all(True):
             if tag.name in invalid_tags:
                 s = ""
                 for c in tag.contents:
@@ -226,8 +233,8 @@ class ArrowFetcher:
                         s += unicode(c).strip()
                     else:
                         s += unicode(c)
-                tag.replaceWith(s)
-        return soup.renderContents().decode('UTF-8')
+                tag.replace_with(s)
+        return soup.encode_contents().decode('UTF-8')
 
 class OkcupidState:
     def __init__(self, username, filename, thunderbird, debug):

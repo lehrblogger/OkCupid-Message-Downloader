@@ -20,9 +20,9 @@ h3. Advanced usage
 
 @--autologin@ can be used instead of @--password@. Supply it with a link that will automatically log you in to OkCupid; you can find these links in emails sent to you from Okcupid. One example is the logotype in top/new matches emails - right click and choose "copy link", then use it with the @--autologin@ argument. Usage requires that _auto login from emails_ is enabled; check your privacy settings on the OKCupid web site.
 
-@--debug@ shows _a lot_ more output.
+@--debug@ only downloads the first page of messages, but shows _a lot_ more output including HTML for the entire page and each message. You probably want to pipe the output to a separate file: @okcmd --debug --username ... &> debug.txt@
 
-The @okcmd@ command uses @python2.7@ and wraps execution in a virtual environment installed using @virtualenv@ and @pip@. If that doesn't work for you, try running @python okc_arrow_fetcher.py@ directly.
+The @okcmd@ command uses @python2.7@ and wraps execution in a virtual environment installed using @virtualenv@ and @pip@. After version upgrades of the dependencies or tools there might be problems or bugs; try to delete the folder @.okcmd-virtualenv/@ to reinstall the virtual environment. If that doesn't work for you, try running @python okc_arrow_fetcher.py@ directly.
 
 
 
