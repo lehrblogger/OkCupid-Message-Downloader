@@ -35,14 +35,5 @@ trap deactivate EXIT;
 # Activate virtual environment.
 source "${OKCMD_VENV}/bin/activate"
 
-if [[ "$NEEDS_INSTALLATION" == "true" ]];
-then
-	# Install python packages/dependencies.
-	pip install --no-deps --requirement scripts/requirements.txt
-
-	# Just an empty line to group output lines.
-	echo
-fi
-
 # Download messages.
 python "${BASH_SOURCE%/*}/../okcmd/arrow_fetcher.py" "$@"

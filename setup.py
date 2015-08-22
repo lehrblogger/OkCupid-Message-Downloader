@@ -3,7 +3,7 @@ setup(
   name = 'okcmd',
   packages = ['okcmd'], # this must be the same as the name above
   scripts = ['scripts/okcmd'],
-  data_files = ['scripts/requirements.txt'],
+  install_requires = ['beautifulsoup4>=4.4.0'],
   version = '0.2',
   description = 'A simple Python script for downloading your sent and received OkCupid messages.',
   author = 'Steven Lehrburger',
