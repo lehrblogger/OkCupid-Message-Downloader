@@ -1,7 +1,6 @@
-README.textile
-LICENSE.txt
-setup.cfg
-setup.py
-okcmd/__init__.py
-okcmd/arrow_fetcher.py
-scripts/okcmd
+include README.textile
+include LICENSE.txt
+include setup.cfg
+include setup.py
+include okcmd/*
+include scripts/okcmd
