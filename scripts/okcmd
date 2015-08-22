@@ -16,7 +16,7 @@ req virtualenv
 req pip
 
 
-OKCMD_VENV="${BASH_SOURCE%/*}/.okcmd-virtualenv"
+OKCMD_VENV="${BASH_SOURCE%/*}/../.okcmd-virtualenv"
 
 [[ -d "$OKCMD_VENV" ]] || NEEDS_INSTALLATION="true"
 
@@ -38,11 +38,11 @@ source "${OKCMD_VENV}/bin/activate"
 if [[ "$NEEDS_INSTALLATION" == "true" ]];
 then
 	# Install python packages/dependencies.
-	pip install --no-deps --requirement requirements.txt
+	pip install --no-deps --requirement scripts/requirements.txt
 
 	# Just an empty line to group output lines.
 	echo
 fi
 
 # Download messages.
-python "${BASH_SOURCE%/*}/OkCupid-Message-Downloader/arrow_fetcher.py" "$@"
+python "${BASH_SOURCE%/*}/../okcmd/arrow_fetcher.py" "$@"
