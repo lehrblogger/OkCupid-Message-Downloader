@@ -4,7 +4,7 @@ setup(
   packages = ['okcmd'], # this must be the same as the name above
   scripts = ['scripts/okcmd'],
   data_files = [('', ['scripts/requirements.txt'])],
-  version = '0.5',
+  version = '0.6',
   description = 'A simple Python script for downloading your sent and received OkCupid messages.',
   author = 'Steven Lehrburger',
   author_email = 'lehrburger@gmail.com',
