@@ -5,12 +5,12 @@ setup(
   entry_points = {'console_scripts': [
       'okcmd = okcmd.arrow_fetcher:main',
   ],},
-  version = '0.9',
+  version = '0.10',
   description = 'A simple Python script for downloading your sent and received OkCupid messages.',
   author = 'Steven Lehrburger',
   author_email = 'lehrburger@gmail.com',
   url = 'https://github.com/lehrblogger/OkCupid-Message-Downloader',
-  download_url = 'https://github.com/lehrblogger/OkCupid-Message-Downloader/tarball/0.1',
+  download_url = 'https://github.com/lehrblogger/OkCupid-Message-Downloader/tarball/0.10',
   keywords = ['okcupid', 'okc', 'okcmd', 'dating', 'archive', 'message', 'download', 'backup'],
   install_requires = ['beautifulsoup4==4.4.0'],
   classifiers = [
