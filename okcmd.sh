@@ -16,7 +16,7 @@ req virtualenv
 req pip
 
 
-OKCMD_VENV="${BASH_SOURCE%/*}/../.okcmd-virtualenv"
+OKCMD_VENV="${BASH_SOURCE%/*}/.okcmd-virtualenv"
 
 [[ -d "$OKCMD_VENV" ]] || NEEDS_INSTALLATION="true"
 
@@ -45,4 +45,4 @@ then
 fi
 
 # Download messages.
-python "${BASH_SOURCE%/*}/../lib/python2.7/site-packages/okcmd/arrow_fetcher.py" "$@"
+python "${BASH_SOURCE%/*}/okcmd/arrow_fetcher.py" "$@"
