@@ -3,9 +3,9 @@ setup(
   name = 'okcmd',
   packages = ['okcmd'], # this must be the same as the name above
   entry_points = {'console_scripts': [
-      'okcmd = okcmd.arrow_fetcher:main_func',
+      'okcmd = okcmd.arrow_fetcher:main',
   ],},
-  version = '0.8',
+  version = '0.9',
   description = 'A simple Python script for downloading your sent and received OkCupid messages.',
   author = 'Steven Lehrburger',
   author_email = 'lehrburger@gmail.com',
