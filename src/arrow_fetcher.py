@@ -276,21 +276,26 @@ class OkcupidState:
         self._setOpenerUrl(autologin)
 
 def main():
-    parser = OptionParser()
+    usage =  "okcmd -u your_username -p your_password -f 'message_output_file.txt'"
+    description = "OkCupid-Message-Downloader (OKCMD): a tool for downloading your sent and received OkCupid messages to a text file."
+    epilog = "See also https://github.com/lehrblogger/OkCupid-Message-Downloader"
+    # TODO: add version argument based on setup.py's version number.
+    #version = "okcmd 1.0"
+    parser = OptionParser(usage=usage, description=description, epilog=epilog)
     parser.add_option("-u", "--username", dest="username",
                       help="your OkCupid username")
     parser.add_option("-p", "--password", dest="password",
                       help="your OkCupid password")
+    parser.add_option("-a", "--autologin", dest="autologin",
+                      help="a link from an OkCupid email, which contains your login credentials; use instead of a password")
     parser.add_option("-f", "--filename", dest="filename",
                       help="the file to which you want to write the data")
     parser.add_option("-t", "--thunderbird", dest="thunderbird",
                       help="format output for Thunderbird rather than as plaintext",
                       action='store_const', const=True, default=False)
     parser.add_option("-d", "--debug", dest="debug",
-                      help="limit the number of threads fetched for debugging",
+                      help="limit the number of threads fetched for debugging, and output raw HTML",
                       action='store_const', const=True, default=False)
-    parser.add_option("-a", "--autologin", dest="autologin",
-                      help="a link from an OkCupid email, which contains your login credentials. Use instead of a password.")
     (options, args) = parser.parse_args()
     options_ok = True
     logging_format = '%(levelname)s: %(message)s'
@@ -301,6 +306,7 @@ def main():
         logging.basicConfig(format=logging_format, level=logging.INFO)
     if not options.username:
         logging.error("Please specify your OkCupid username with either '-u' or '--username'")
+        options_ok = False
     if not options.autologin and not options.password:
         logging.error("Please specify your OkCupid password with either '-p' or '--password' (or use '-a' or '--autologin')")
         options_ok = False
@@ -310,7 +316,9 @@ def main():
     if not options.filename:
         logging.error("Please specify the destination file with either '-f' or '--filename'")
         options_ok = False
-    if options_ok:
+    if not options_ok:
+        logging.error("See 'okcmd --help' for all options.")
+    else:
         state = OkcupidState(options.username, options.filename, options.thunderbird, options.debug)
         if options.username and options.password:
             state.use_password(options.password)
