@@ -45,4 +45,4 @@ then
 fi
 
 # Download messages.
-python "${BASH_SOURCE%/*}/okcmd/arrow_fetcher.py" "$@"
+python "${BASH_SOURCE%/*}/src/arrow_fetcher.py" "$@"
