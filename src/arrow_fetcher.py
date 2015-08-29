@@ -280,7 +280,7 @@ def main():
     description = "OkCupid-Message-Downloader (OKCMD): a tool for downloading your sent and received OkCupid messages to a text file."
     epilog = "See also https://github.com/lehrblogger/OkCupid-Message-Downloader"
     # TODO: add version argument based on setup.py's version number.
-    #version = "okcmd 1.0"
+    #version = "okcmd 1.1"
     parser = OptionParser(usage=usage, description=description, epilog=epilog)
     parser.add_option("-u", "--username", dest="username",
                       help="your OkCupid username")
