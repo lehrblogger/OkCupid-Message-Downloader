@@ -93,6 +93,9 @@ class ArrowFetcher:
                       ('&#39;', "'"),
                       ('&rsquo;', u'\u2019'),
                       ('&mdash;', "--")]
+    # TODO: make a better "guess" about the time of the broadcast, account deletion, or Quiver match.
+    # Perhaps get the time of the next message/reply (there should be at least one), and set the time based on it.
+    fallback_date = datetime(2000, 1, 1, 12, 0)
 
     def __init__(self, username, thunderbird=False, debug=False):
         self.username = username
@@ -163,6 +166,7 @@ class ArrowFetcher:
         f = self._request_read_sleep(self.secure_base_url + thread_url)
         soup = self._safely_soupify(f)
         logging.debug("Raw full-page (type: %s): %s", type(soup), soup)
+        thread_element = soup.find('ul', {'id': 'thread'})
         try:
             subject = soup.find('strong', {'id': 'message_heading'}).contents[0]
             subject = unicode(subject)
@@ -176,49 +180,62 @@ class ArrowFetcher:
         except AttributeError:
             try:
                 # messages from OkCupid itself are a special case
-                other_user = soup.find('ul', {'id': 'thread'}).find('div', 'signature').contents[0].partition('Message from ')[2]
+                other_user = thread_element.find('div', 'signature').contents[0].partition('Message from ')[2]
             except AttributeError:
                 other_user = ''
-        messages = soup.find('ul', {'id': 'thread'}).find_all('li')
-        logging.debug("Raw messages (type: %s): %s", type(messages), messages)
-        for message in messages:
-            message_type = re.sub(r'_.*$', '', message.get('id', 'unknown'))
-            logging.debug("Raw message (type: %s): %s", type(message), message)
-            body_contents = message.find('div', 'message_body')
-            if not body_contents and message_type == 'deleted':
-                body_contents = message
-            if body_contents:
-                logging.debug("Message (type: %s): %s", message_type, body_contents)
-                body = self._strip_tags(body_contents.encode_contents().decode('UTF-8')).strip()
-                logging.debug("Message after tag removing: %s", body)
-                for find, replace in self.encoding_pairs:
-                    body = body.replace(unicode(find), unicode(replace))
-                logging.debug("Message after HTML entity conversion: %s", body)
-                if message_type in ['broadcast', 'deleted', 'quiver']:
-                    # TODO: make a better "guess" about the time of the broadcast, account deletion, or Quiver match.
-                    # Perhaps get the time of the next message/reply (there should be at least one), and set the time based on it.
-                    timestamp = datetime(2000, 1, 1, 12, 0)
+        mutual_match_no_messages = thread_element.find_all('a', class_='mutual_match_no_messages')
+        if len(list(mutual_match_no_messages)) == 1:
+            sender = other_user
+            recipient = self.username
+            timestamp = self.fallback_date
+            body = unicode("You like each other!")
+            logging.debug("No message, only mutual match: %s", body)
+            message_list.append(Message(self.secure_base_url + thread_url,
+                                        unicode(sender),
+                                        unicode(recipient),
+                                        timestamp,
+                                        subject,
+                                        body,
+                                        thunderbird=self.thunderbird))
+        else:
+            messages = thread_element.find_all('li')
+            logging.debug("Raw messages (type: %s): %s", type(messages), messages)
+            for message in messages:
+                message_type = re.sub(r'_.*$', '', message.get('id', 'unknown'))
+                logging.debug("Raw message (type: %s): %s", type(message), message)
+                body_contents = message.find('div', 'message_body')
+                if not body_contents and message_type == 'deleted':
+                    body_contents = message
+                if body_contents:
+                    logging.debug("Message (type: %s): %s", message_type, body_contents)
+                    body = self._strip_tags(body_contents.encode_contents().decode('UTF-8')).strip()
+                    logging.debug("Message after tag removing: %s", body)
+                    for find, replace in self.encoding_pairs:
+                        body = body.replace(unicode(find), unicode(replace))
+                    logging.debug("Message after HTML entity conversion: %s", body)
+                    if message_type in ['broadcast', 'deleted', 'quiver']:
+                        timestamp = self.fallback_date
+                    else:
+                        fancydate_js = message.find('span', 'timestamp').find('script').string
+                        timestamp = datetime.fromtimestamp(int(fancydate_js.split(', ')[1]))
+                    sender = other_user
+                    recipient = self.username
+                    try:
+                        if any(clazz.replace('preview', '').strip() == 'from_me' for clazz in message['class']):
+                            recipient = other_user
+                            sender = self.username
+                    except KeyError:
+                        pass
+                    logging.debug("Body: %s", body)
+                    message_list.append(Message(self.secure_base_url + thread_url,
+                                                unicode(sender),
+                                                unicode(recipient),
+                                                timestamp,
+                                                subject,
+                                                body,
+                                                thunderbird=self.thunderbird))
                 else:
-                    fancydate_js = message.find('span', 'timestamp').find('script').string
-                    timestamp = datetime.fromtimestamp(int(fancydate_js.split(', ')[1]))
-                sender = other_user
-                recipient = self.username
-                try:
-                    if any(clazz.replace('preview', '').strip() == 'from_me' for clazz in message['class']):
-                        recipient = other_user
-                        sender = self.username
-                except KeyError:
-                    pass
-                logging.debug("Body: %s", body)
-                message_list.append(Message(self.secure_base_url + thread_url,
-                                            unicode(sender),
-                                            unicode(recipient),
-                                            timestamp,
-                                            subject,
-                                            body,
-                                            thunderbird=self.thunderbird))
-            else:
-                continue  # control elements are also <li>'s in their html, so non-messages
+                    continue  # control elements are also <li>'s in their html, so non-messages
         return message_list
 
     # http://stackoverflow.com/questions/1765848/remove-a-tag-using-beautifulsoup-but-keep-its-contents/1766002#1766002
