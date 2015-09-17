@@ -26,7 +26,7 @@ h3. Auto login links instead of a password
 
 h3. "Thunderbird":https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&ved=0CB4QFjAAahUKEwiHy4LIhsnHAhVBCCwKHQPvBEM&url=https%3A%2F%2Fwww.mozilla.org%2Fthunderbird%2F&ei=_-XeVcfPKcGQsAGD3pOYBA&usg=AFQjCNEXEPki7BAZim9dQdWY25jJg3CfFA&sig2=VmUtjGSPVtUbyx8YQOWh9w&cad=rja
 
-You can add the @-t@ flag to get the output as a possibly-Thunderbird-compatible file rather than the default plaintext format, but the feature hasn't been thoroughly tested. Put the file in a @Local@ folder, and hopefully Thunderbird can read/process it from there. Please report back if it works or if there are any issues!
+You can add the @-m@ or @-t@ flag to get the output as a possibly-MBOX-compatible file rather than the default plaintext format, but the feature hasn't been thoroughly tested. Put the file in a @Local@ folder, and hopefully Thunderbird (or pine/alpine/realpine) can read/process it from there. Please report back if it works or if there are any issues!
 
 
 h3. Debugging
