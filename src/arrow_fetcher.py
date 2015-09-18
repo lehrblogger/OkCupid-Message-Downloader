@@ -122,10 +122,14 @@ class ArrowFetcher:
                     f = self._request_read_sleep(self.secure_base_url + '/messages?folder=' + str(folder) + '&low=' + str((page * 30) + 1))
                     soup = self._safely_soupify(f)
                     end_pattern = re.compile('&folder=\d\';')
-                    threads = [
-                        '/messages?readmsg=true&threadid=' + li['data-threadid']
-                        for li in soup.find('ul', {'id': 'messages'}).find_all('li')
-                    ]
+                    threads = []
+                    self.threadtimes = {}
+                    for li in soup.find('ul', {'id': 'messages'}).find_all('li'):
+                        threads.append('/messages?readmsg=true&threadid=' + li['data-threadid'])
+                        fancydate_js = li.find('span', 'timestamp').find('script').string
+                        timestamp = datetime.fromtimestamp(int(fancydate_js.split(', ')[1]))
+                        self.threadtimes[ li['data-threadid'] ] = timestamp
+
                     if len(threads) == 0:  # break out of the infinite loop when we reach the end and there are no threads on the page
                         break
                     else:
@@ -163,6 +167,7 @@ class ArrowFetcher:
     def _fetch_thread(self, thread_url):
         message_list = []
         logging.info("Fetching thread: " + self.secure_base_url + thread_url)
+        threadnum = thread_url.split('=')[-1]
         f = self._request_read_sleep(self.secure_base_url + thread_url)
         soup = self._safely_soupify(f)
         logging.debug("Raw full-page (type: %s): %s", type(soup), soup)
@@ -187,7 +192,7 @@ class ArrowFetcher:
         if len(list(mutual_match_no_messages)) == 1:
             sender = other_user
             recipient = self.username
-            timestamp = self.fallback_date
+            timestamp = self.threadtimes.get(threadnum, self.fallback_date)
             body = unicode("You like each other!")
             logging.debug("No message, only mutual match: %s", body)
             message_list.append(Message(self.secure_base_url + thread_url,
@@ -214,7 +219,7 @@ class ArrowFetcher:
                         body = body.replace(unicode(find), unicode(replace))
                     logging.debug("Message after HTML entity conversion: %s", body)
                     if message_type in ['broadcast', 'deleted', 'quiver']:
-                        timestamp = self.fallback_date
+                        timestamp = self.threadtimes.get(threadnum, self.fallback_date)
                     else:
                         fancydate_js = message.find('span', 'timestamp').find('script').string
                         timestamp = datetime.fromtimestamp(int(fancydate_js.split(', ')[1]))
