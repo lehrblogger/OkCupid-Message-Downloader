@@ -16,21 +16,23 @@ from bs4 import BeautifulSoup, NavigableString
 
 
 class Message:
-    def __init__(self, thread_url, sender, recipient, timestamp, subject, content, thunderbird=False):
+    def __init__(self, thread_url, sender, recipient, timestamp, subject, content, mbox=False):
         self.thread_url = thread_url
         self.sender = sender
         self.recipient = recipient
         self.timestamp = timestamp
         self.subject = subject
         self.content = content
-        self.thunderbird = thunderbird
+        self.mbox = mbox
 
     def __str__(self):
-        if self.thunderbird:
+        if self.mbox:
             msglength = len(self.content)
             subject="OKC Message, length = " + str(msglength).zfill(4)  # leading zeros for message length
+            tstamp=self.timestamp.strftime('%a %b %d %H:%M:%S %Y') if self.timestamp else None
             return """
 From - %s
+Date: %s
 From: %s
 To: %s
 Subject: %s
@@ -38,7 +40,7 @@ Subject: %s
 %s
 URL: %s
 
-"""            % (  self.timestamp.strftime('%a %b %d %H:%M:%S %Y') if self.timestamp else None,
+"""            % (  tstamp, tstamp,
                     self.sender,
                     self.recipient,
                     subject,
@@ -74,7 +76,7 @@ class MessageMissing(Message):
         self.timestamp = None
         self.subject = None
         self.content = "ERROR: message(s) not fetched"
-        self.thunderbird = False
+        self.mbox = False
 
 
 class ArrowFetcher:
@@ -97,9 +99,9 @@ class ArrowFetcher:
     # Perhaps get the time of the next message/reply (there should be at least one), and set the time based on it.
     fallback_date = datetime(2000, 1, 1, 12, 0)
 
-    def __init__(self, username, thunderbird=False, debug=False):
+    def __init__(self, username, mbox=False, debug=False):
         self.username = username
-        self.thunderbird = thunderbird
+        self.mbox = mbox
         self.debug = debug
         self.thread_urls = []
 
@@ -201,7 +203,7 @@ class ArrowFetcher:
                                         timestamp,
                                         subject,
                                         body,
-                                        thunderbird=self.thunderbird))
+                                        mbox=self.mbox))
         else:
             messages = thread_element.find_all('li')
             logging.debug("Raw messages (type: %s): %s", type(messages), messages)
@@ -238,7 +240,7 @@ class ArrowFetcher:
                                                 timestamp,
                                                 subject,
                                                 body,
-                                                thunderbird=self.thunderbird))
+                                                mbox=self.mbox))
                 else:
                     continue  # control elements are also <li>'s in their html, so non-messages
         return message_list
@@ -259,10 +261,10 @@ class ArrowFetcher:
         return soup.encode_contents().decode('UTF-8')
 
 class OkcupidState:
-    def __init__(self, username, filename, thunderbird, debug):
+    def __init__(self, username, filename, mbox, debug):
         self.username = username
         self.filename = filename
-        self.thunderbird = thunderbird
+        self.mbox = mbox
         self.debug = debug
         self.cookie_jar = cookielib.CookieJar()
         self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cookie_jar))
@@ -276,7 +278,7 @@ class OkcupidState:
     def fetch(self):
         arrow_fetcher = ArrowFetcher(
             self.username,
-            thunderbird=self.thunderbird,
+            mbox=self.mbox,
             debug=self.debug)
         arrow_fetcher.queue_threads()
         arrow_fetcher.dedupe_threads()
@@ -312,7 +314,10 @@ def main():
                       help="a link from an OkCupid email, which contains your login credentials; use instead of a password")
     parser.add_option("-f", "--filename", dest="filename",
                       help="the file to which you want to write the data")
-    parser.add_option("-t", "--thunderbird", dest="thunderbird",
+    parser.add_option("-m", "--mbox", dest="mbox",
+                      help="format output as MBOX rather than as plaintext",
+                      action='store_const', const=True, default=False)
+    parser.add_option("-t", "--thunderbird", dest="mbox",
                       help="format output for Thunderbird rather than as plaintext",
                       action='store_const', const=True, default=False)
     parser.add_option("-d", "--debug", dest="debug",
@@ -341,7 +346,7 @@ def main():
     if not options_ok:
         logging.error("See 'okcmd --help' for all options.")
     else:
-        state = OkcupidState(options.username, options.filename, options.thunderbird, options.debug)
+        state = OkcupidState(options.username, options.filename, options.mbox, options.debug)
         if options.username and options.password:
             state.use_password(options.password)
         if options.autologin:
