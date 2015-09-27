@@ -99,11 +99,14 @@ class ArrowFetcher:
     # Perhaps get the time of the next message/reply (there should be at least one), and set the time based on it.
     fallback_date = datetime(2000, 1, 1, 12, 0)
 
-    def __init__(self, username, mbox=False, debug=False):
+    def __init__(self, username, mbox=False, debug=False, indexfile=None):
         self.username = username
         self.mbox = mbox
         self.debug = debug
         self.thread_urls = []
+        self.indexfile = indexfile
+        if indexfile:
+            self.secure_base_url = 'https://localhost'
 
     def _safely_soupify(self, f):
         f = f.partition("function autocoreError")[0] + '</body></html>' # wtf okc with the weirdly encoded "</scr' + 'ipt>'"-type statements in your javascript
@@ -121,7 +124,10 @@ class ArrowFetcher:
                 page = 0
                 while (page < 1 if self.debug else True):
                     logging.info("Queuing folder %s, page %s", folder, page)
-                    f = self._request_read_sleep(self.secure_base_url + '/messages?folder=' + str(folder) + '&low=' + str((page * 30) + 1))
+                    if self.indexfile:
+                        f = urllib2.urlopen('file:'+self.indexfile).read()
+                    else:
+                        f = self._request_read_sleep(self.secure_base_url + '/messages?folder=' + str(folder) + '&low=' + str((page * 30) + 1))
                     soup = self._safely_soupify(f)
                     end_pattern = re.compile('&folder=\d\';')
                     threads = []
@@ -261,11 +267,12 @@ class ArrowFetcher:
         return soup.encode_contents().decode('UTF-8')
 
 class OkcupidState:
-    def __init__(self, username, filename, mbox, debug):
+    def __init__(self, username, filename, mbox, debug, indexfile):
         self.username = username
         self.filename = filename
         self.mbox = mbox
         self.debug = debug
+        self.indexfile = indexfile
         self.cookie_jar = cookielib.CookieJar()
         self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cookie_jar))
         urllib2.install_opener(self.opener)
@@ -279,7 +286,8 @@ class OkcupidState:
         arrow_fetcher = ArrowFetcher(
             self.username,
             mbox=self.mbox,
-            debug=self.debug)
+            debug=self.debug,
+            indexfile=self.indexfile)
         arrow_fetcher.queue_threads()
         arrow_fetcher.dedupe_threads()
         try:
@@ -298,6 +306,10 @@ class OkcupidState:
     def use_autologin(self, autologin):
         logging.debug("Using autologin url: %s", autologin)
         self._setOpenerUrl(autologin)
+
+    def use_indexfile(self, indexfile):
+        logging.debug("Using cached index file: %s", indexfile)
+        self._setOpenerUrl('file:'+indexfile)
 
 def main():
     usage =  "okcmd -u your_username -p your_password -f 'message_output_file.txt'"
@@ -323,9 +335,16 @@ def main():
     parser.add_option("-d", "--debug", dest="debug",
                       help="limit the number of threads fetched for debugging, and output raw HTML",
                       action='store_const', const=True, default=False)
+    parser.add_option("-i", "--index", dest="indexfile", default=None,
+                      help="read the message index from html file, for developers. Implies --debug")
     (options, args) = parser.parse_args()
     options_ok = True
     logging_format = '%(levelname)s: %(message)s'
+    if options.indexfile:
+        options.debug = True
+        options.username = 'staff_robot'
+        options.password = 'he@rtl3ss!'
+
     if options.debug:
         logging.basicConfig(format=logging_format, level=logging.DEBUG)
         logging.debug("Debug mode turned on.")
@@ -346,10 +365,12 @@ def main():
     if not options_ok:
         logging.error("See 'okcmd --help' for all options.")
     else:
-        state = OkcupidState(options.username, options.filename, options.mbox, options.debug)
-        if options.username and options.password:
+        state = OkcupidState(options.username, options.filename, options.mbox, options.debug, options.indexfile)
+        if options.indexfile:
+            state.use_indexfile(options.indexfile)
+        elif options.username and options.password:
             state.use_password(options.password)
-        if options.autologin:
+        elif options.autologin:
             state.use_autologin(options.autologin)
         state.fetch()
     logging.info("Done.")
