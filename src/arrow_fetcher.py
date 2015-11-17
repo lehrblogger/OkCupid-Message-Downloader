@@ -11,6 +11,8 @@ import cookielib
 import urllib
 import urllib2
 import logging
+import os
+import os.path
 
 from bs4 import BeautifulSoup, NavigableString
 
@@ -172,6 +174,29 @@ class ArrowFetcher:
             f.write(unicode(message))
         f.close()
 
+    def write_directory(self, directory):
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        open_files = {}
+
+        self.messages.sort(key = lambda message: message.timestamp)  # sort by time
+        for message in self.messages:
+            if message.recipient == self.username:
+                other = message.sender
+            else:
+                other = message.recipient
+
+            if other not in open_files:
+                filename = "%s/%s.txt" % (directory, other)
+                logging.debug("Writing %s" % filename)
+                open_files[other] = codecs.open(filename, encoding='utf-8', mode='w')
+
+            open_files[other].write(unicode(message))
+
+        for f in open_files.values():
+            f.close
+
     def _fetch_thread(self, thread_url):
         message_list = []
         logging.info("Fetching thread: " + self.secure_base_url + thread_url)
@@ -267,9 +292,10 @@ class ArrowFetcher:
         return soup.encode_contents().decode('UTF-8')
 
 class OkcupidState:
-    def __init__(self, username, filename, mbox, debug, indexfile):
+    def __init__(self, username, filename, directory, mbox, debug, indexfile):
         self.username = username
         self.filename = filename
+        self.directory = directory
         self.mbox = mbox
         self.debug = debug
         self.indexfile = indexfile
@@ -292,9 +318,13 @@ class OkcupidState:
         arrow_fetcher.dedupe_threads()
         try:
             arrow_fetcher.fetch_threads()
-            arrow_fetcher.write_messages(self.filename)
+            if self.filename:
+                arrow_fetcher.write_messages(self.filename)
+            if self.directory:
+                arrow_fetcher.write_directory(self.directory)
         except KeyboardInterrupt:
-            if self.debug:  # Write progress so far to the output file if we're debugging
+            if self.debug and self.filename:
+                # Write progress so far to the output file if we're debugging
                 arrow_fetcher.write_messages(self.filename)
             raise KeyboardInterrupt
 
@@ -326,6 +356,8 @@ def main():
                       help="a link from an OkCupid email, which contains your login credentials; use instead of a password")
     parser.add_option("-f", "--filename", dest="filename",
                       help="the file to which you want to write the data")
+    parser.add_option("", "--directory", dest="directory",
+                      help="the directory to which you want to write the data")
     parser.add_option("-m", "--mbox", dest="mbox",
                       help="format output as MBOX rather than as plaintext",
                       action='store_const', const=True, default=False)
@@ -359,13 +391,13 @@ def main():
     if options.autologin and options.password:
         logging.error("Don't specify both autologin and password")
         options_ok = False
-    if not options.filename:
-        logging.error("Please specify the destination file with either '-f' or '--filename'")
+    if not options.filename and not options.directory:
+        logging.error("Please specify the destination file or directory with either '-f', '--filename' or '--directory'")
         options_ok = False
     if not options_ok:
         logging.error("See 'okcmd --help' for all options.")
     else:
-        state = OkcupidState(options.username, options.filename, options.mbox, options.debug, options.indexfile)
+        state = OkcupidState(options.username, options.filename, options.directory, options.mbox, options.debug, options.indexfile)
         if options.indexfile:
             state.use_indexfile(options.indexfile)
         elif options.username and options.password:
