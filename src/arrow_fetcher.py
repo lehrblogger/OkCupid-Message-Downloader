@@ -178,8 +178,8 @@ class ArrowFetcher:
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        open_files = {}
-
+        # sort messages by other
+        by_other = {}
         self.messages.sort(key = lambda message: message.timestamp)  # sort by time
         for message in self.messages:
             if message.recipient == self.username:
@@ -187,14 +187,17 @@ class ArrowFetcher:
             else:
                 other = message.recipient
 
-            if other not in open_files:
-                filename = "%s/%s.txt" % (directory, other)
-                logging.debug("Writing %s" % filename)
-                open_files[other] = codecs.open(filename, encoding='utf-8', mode='w')
+            if other not in by_other:
+                by_other[other] = []
+            by_other[other].append(message)
 
-            open_files[other].write(unicode(message))
-
-        for f in open_files.values():
+        # write out to files
+        for other in by_other:
+            filename = "%s/%s.txt" % (directory, other)
+            logging.debug("Writing %s" % filename)
+            f = codecs.open(filename, encoding='utf-8', mode='w')
+            for message in by_other[other]:
+                f.write(unicode(message))
             f.close
 
     def _fetch_thread(self, thread_url):
