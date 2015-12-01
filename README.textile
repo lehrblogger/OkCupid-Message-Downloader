@@ -28,6 +28,9 @@ h3. "Thunderbird":https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=
 
 You can add the @-m@ or @-t@ flag to get the output as a possibly-MBOX-compatible file rather than the default plaintext format, but the feature hasn't been thoroughly tested. Put the file in a @Local@ folder, and hopefully Thunderbird (or pine/alpine/realpine) can read/process it from there. Please report back if it works or if there are any issues!
 
+h3. Directory output
+
+By specifying @--directory@ instead of @--filename@, the chats will be sorted into files named @username.txt@ according to your conversation partner.
 
 h3. Debugging
 
