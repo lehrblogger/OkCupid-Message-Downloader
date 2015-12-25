@@ -136,8 +136,12 @@ class ArrowFetcher:
                     self.threadtimes = {}
                     for li in soup.find('ul', {'id': 'messages'}).find_all('li'):
                         threads.append('/messages?readmsg=true&threadid=' + li['data-threadid'])
-                        fancydate_js = li.find('span', 'timestamp').find('script').string
-                        timestamp = datetime.fromtimestamp(int(fancydate_js.split(', ')[1]))
+                        fancydate_id = li.find('span', 'timestamp').find('span','fancydate')['id']
+                        timestamp_match = re.search(r'''"timestamp" : (\d+), "id" : "%s"''' % fancydate_id, f)
+                        if not timestamp_match:
+                            logging.error("Cannot find timestamp for fancydate_id %s", fancydate_id)
+                            next
+                        timestamp = datetime.fromtimestamp(int(timestamp_match.group(1)))
                         self.threadtimes[ li['data-threadid'] ] = timestamp
 
                     if len(threads) == 0:  # break out of the infinite loop when we reach the end and there are no threads on the page
@@ -257,8 +261,13 @@ class ArrowFetcher:
                     if message_type in ['broadcast', 'deleted', 'quiver']:
                         timestamp = self.threadtimes.get(threadnum, self.fallback_date)
                     else:
-                        fancydate_js = message.find('span', 'timestamp').find('script').string
-                        timestamp = datetime.fromtimestamp(int(fancydate_js.split(', ')[1]))
+                        fancydate_id = message.find('span', 'timestamp').find('span','fancydate')['id']
+                        timestamp_match = re.search(r'''"timestamp" : (\d+), "id" : "%s"''' % fancydate_id, f)
+                        if not timestamp_match:
+                            logging.error("Cannot find timestamp for fancydate_id %s", fancydate_id)
+                            next
+                        timestamp = datetime.fromtimestamp(int(timestamp_match.group(1)))
+
                     sender = other_user
                     recipient = self.username
                     try:
